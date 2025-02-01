@@ -5,14 +5,34 @@ const auth = require("../middleware/auth");
 const router = express.Router();
 
 // Create a new book (admin or author)
-router.post("/books", auth, async (req, res) => {
+router.post("/", auth, async (req, res) => {
   try {
-    r;
     if (req.user.role !== "admin" && req.user.role !== "author") {
       return res.status(403).json({ message: "Access denied" });
     }
-    const { title, author, genre, year, rating } = req.body;
-    const book = new Book({ title, author, genre, year, rating });
+    const {
+      bookName,
+      authorName,
+      averageRating,
+      ratings,
+      reviews,
+      categoryName,
+      description,
+      coverImage,
+      shelve,
+    } = req.body;
+    const book = new Book({
+      bookName,
+      authorName,
+      averageRating: averageRating || 0,
+      ratings: ratings || 0,
+      reviews: reviews || [],
+      categoryName,
+      description,
+      coverImage,
+      shelve: shelve || "Want To Read",
+      author: req.user._id,
+    });
     await book.save();
     res.status(201).json(book);
   } catch (err) {
@@ -21,17 +41,23 @@ router.post("/books", auth, async (req, res) => {
 });
 
 // Get all books
-router.get("/books", async (req, res) => {
-  const books = await Book.find();
-  res.json(books);
+router.get("/", async (req, res) => {
+  try {
+    const books = await Book.find();
+    res.json(books);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Update a Book (Author)
-router.put("/books/:id", auth, async (req, res) => {
+router.put("/:id", auth, async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
-
-    if (book.author !== req.user._id.toString()) {
+    if (!book || !book.author) {
+      return res.status(400).json({ message: "Book does not have an author." });
+    }
+    if (book.author.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         message: "Access denied: You are not the author of this book",
       });
@@ -47,7 +73,7 @@ router.put("/books/:id", auth, async (req, res) => {
 });
 
 // Delete a book(Admin or Author)
-router.delete("/books/:id", auth, async (req, res) => {
+router.delete("/:id", auth, async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
 
