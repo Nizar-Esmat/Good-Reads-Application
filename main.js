@@ -13,10 +13,12 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
 // Import routes
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
+const bookRoutes = require("./routes/books"); 
 
 // Use routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/books", bookRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 5000;
