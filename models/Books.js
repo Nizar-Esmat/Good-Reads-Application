@@ -10,8 +10,6 @@ const BookSchema = new mongoose.Schema({
     description: { type: String },
     coverImage: { type: String },
     shelve: { type: String, enum: ['Read', 'Currently Reading', 'Want To Read'], default: 'Want To Read' },
-    author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-
 });
 
 module.exports = mongoose.model('Book', BookSchema);
