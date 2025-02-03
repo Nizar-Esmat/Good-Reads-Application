@@ -10,9 +10,14 @@ exports.createCategory=async(req,res)=>{
         }
         const{ categoryName,description,coverImage}=req.body;
         
+        
         const existingCategry = await Category.findOne({ categoryName });
         if (existingCategry) {
             return res.status(400).json({ message: "This categry already exists" });
+        }
+
+        if (!categoryName || !description) {
+            return res.status(400).json({ message: "categoryName and description are required" });
         }
 
         const category = new Category({
@@ -82,6 +87,18 @@ exports.addBooksToCategory = async (req, res) => {
       res.status(500).json({ message: "Error updating category" });
     }
   };
+
+  // Get a Category by id
+exports.getCategoryById = async (req, res) => {
+    try {
+        const category = await Category.findById(req.params.id);
+        if (!category) return res.status(404).json({ message: "Category not found" });
+        res.json(category);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
   
   //Get all Categories 
   exports.getAllCategories = async (req, res) => {
@@ -95,7 +112,7 @@ exports.addBooksToCategory = async (req, res) => {
         let searchQuery = {};
         if (search) {
           searchQuery = {
-            categoryName: { $regex: search, $options: "i" }, // البحث في categoryName باستخدام الـ regex
+            categoryName: { $regex: search, $options: "i" }, 
           };
         }
 
