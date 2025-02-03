@@ -8,7 +8,7 @@ let {
   getBookById,
   updateBook,
   deleteBook,
-} = require("../controllers/booksContrller");
+} = require("../controllers/bookController");
 
 
 router.post("/", auth, createBook);
