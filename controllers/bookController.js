@@ -35,7 +35,7 @@ exports.createBook = async (req, res) => {
             shelve: shelve || "Want To Read",
         });
         await book.save();
-        res.status(201).json(book);
+        res.status(201).json({message: "Book created successfully",book});
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
