@@ -2,23 +2,16 @@ const express = require("express");
 const auth = require("../middleware/auth");
 const router = express.Router();
 
-let {
-    createAuthor,
-    getAllAuthors,
-    getAuthorById,
-    addBookToAuthor,
-    updateAuthor,
-    deleteBookFromAuthor,
-    deleteAuthor,
-  } = require("../controllers/authorController");
+// Import the authorController and upload middleware
+const authorController = require("../controllers/authorController");
 
-
-router.post("/", auth,createAuthor);
-router.get("/", getAllAuthors);
-router.get("/:id", getAuthorById);
-router.put("/:authorId/books", addBookToAuthor);
-router.put("/:id", auth,updateAuthor);
-router.delete("/:authorId/book/:bookId", auth,deleteBookFromAuthor);
-router.delete("/:id", auth,deleteAuthor);
+// Routes
+router.post('/', auth, authorController.upload.single('avatar'), authorController.createAuthor); // Create a new author
+router.get("/", authorController.getAllAuthors); // Get all authors
+router.get("/:id", authorController.getAuthorById); // Get an author by ID
+router.put("/:authorId/books", auth, authorController.addBookToAuthor); // Add a book to an author
+router.put("/:id", auth, authorController.updateAuthor); // Update an author
+router.delete("/:authorId/book/:bookId", auth, authorController.deleteBookFromAuthor); // Delete a book from an author
+router.delete("/:id", auth, authorController.deleteAuthor); // Delete an author
 
 module.exports = router;

@@ -1,184 +1,184 @@
-const Author  = require("../models/Authors");
-const Book = require("../models/Books");
+const Author = require("../models/Authors");
 const mongoose = require("mongoose");
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const multer = require('multer');
 
-// Create a new author (admin )
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Set up Multer storage for Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'author_avatars', // Folder in Cloudinary
+    format: async (req, file) => 'png', // Default format
+    public_id: (req, file) => `avatar-${Date.now()}`, // Unique public ID
+  },
+});
+
+// Initialize Multer with the Cloudinary storage
+const upload = multer({ storage: storage });
+
+// Create a new author (admin only)
 exports.createAuthor = async (req, res) => {
   try {
+    // Check if the user is an admin
     if (req.user.role !== "admin") {
-        return res.status(403).json({ message: "Access denied" });
+      return res.status(403).json({ message: "Access denied" });
     }
-    const { authorName, dateOfBirth, books, bio, imageUrl } = req.body;
 
+    // Extract fields from the request body
+    const { authorName, dateOfBirth, books, bio } = req.body;
+
+    // Check if the author already exists
     const existingAuthor = await Author.findOne({ authorName });
     if (existingAuthor) {
       return res.status(400).json({ message: "Author already exists" });
     }
 
+    // Validate the books array
     const validBooks = books.map(book => {
-        let bookId = null;
-        if (book.bookId && mongoose.Types.ObjectId.isValid(book.bookId)) {
-            bookId = new mongoose.Types.ObjectId(book.bookId);
-          }
-          return {
-            bookId: bookId,
-            title: book.title
-          };
-        });
+      let bookId = null;
+      if (book.bookId && mongoose.Types.ObjectId.isValid(book.bookId)) {
+        bookId = new mongoose.Types.ObjectId(book.bookId);
+      }
+      return {
+        bookId: bookId,
+        title: book.title
+      };
+    });
+
+    // Create the author object
     const author = new Author({
       authorName: authorName,
       dateOfBirth: dateOfBirth,
-      books: validBooks|| [],
-      bio: bio || "",  
-      imageUrl: imageUrl || "" 
+      books: validBooks || [],
+      bio: bio || "",
+      avatar: await req.file.path // Use Cloudinary URL
     });
+
+    // Save the author to the database
     await author.save();
-    res.status(201).json(author);
+
+    // Send the response
+    res.status(201).json({
+      message: "Author created successfully",
+      author: author,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-//Get all authors(?search=)
+// Get all authors
 exports.getAllAuthors = async (req, res) => {
-    try {
-        const { page = 1, limit = 10 , search = ""} = req.query;
-        const query = search ? { authorName: { $regex: search, $options: "i" } } : {};
-
-        const authors = await Author.find(query)
-        .populate("books.bookId").limit(Number(limit))
-        .skip((Number(page) - 1) * Number(limit));
-        const totalAuthors = await Author.countDocuments(query);
-        res.json({
-            totalPages: Math.ceil(totalAuthors / Number(limit)),
-            currentPage: Number(page),
-            authors,
-          });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  try {
+    const authors = await Author.find();
+    res.status(200).json(authors);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-//Get author by id
+// Get an author by ID
 exports.getAuthorById = async (req, res) => {
-    try {
-        const author = await Author.findById(req.params.id).populate("books.bookId");
-        if (!author) return res.status(404).json({ message: "Author not found" });
-        res.json(author);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+  try {
+    const author = await Author.findById(req.params.id);
+    if (!author) {
+      return res.status(404).json({ message: "Author not found" });
     }
+    res.status(200).json(author);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-//add book to author
+// Add a book to an author
 exports.addBookToAuthor = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-        return res.status(403).json({ message: "Access denied" });
-    }
-
-    const { authorId } = req.params;
     const { bookId, title } = req.body;
-    
-    const bookExists = await Book.findById(bookId);
-    if (!bookExists) {
-      return res.status(404).json({ message: "Book not found" });
-    }
-
-    const author = await Author.findById(authorId);
+    const author = await Author.findById(req.params.authorId);
     if (!author) {
       return res.status(404).json({ message: "Author not found" });
     }
 
-    const isBookAlreadyAdded = author.books.some(book => book.bookId.toString() === bookId);
-    if (isBookAlreadyAdded) {
-      return res.status(400).json({ message: "Book already added to author" });
-    }
-
-    if (bookExists && bookExists._id) {
-        author.books.push({ bookId: bookExists._id, title });
-    }
-   
+    author.books.push({ bookId, title });
     await author.save();
 
-    res.json({
-        message: "Book added to author successfully",
-        author: author,
+    res.status(200).json({
+      message: "Book added to author successfully",
+      author: author,
     });
-   
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Update author (Admin)
+// Update an author
 exports.updateAuthor = async (req, res) => {
-    try {
-        if (req.user.role !== "admin") {
-            return res.status(400).json({ message: "Access denied." });
-        }
-
-        const { bio, imageUrl, authorName, dateOfBirth } = req.body;
-        
-
-        const author = await Author.findById(req.params.id);
-        if (!author) {
-          return res.status(404).json({ message: "Author not found" });
-        }
-
-        if (authorName) author.authorName = authorName;
-        if (dateOfBirth) author.dateOfBirth = dateOfBirth;
-        if (bio) author.bio = bio;
-        if (imageUrl) author.imageUrl = imageUrl;
-    
-        await author.save();
-    
-        res.json({
-            message: "Author updated successfully",
-            author: author,
-          });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+  try {
+    const { authorName, dateOfBirth, bio } = req.body;
+    const author = await Author.findById(req.params.id);
+    if (!author) {
+      return res.status(404).json({ message: "Author not found" });
     }
-};
 
-// Delete specific book from author(Admin)
-exports.deleteBookFromAuthor = async (req, res) => {
-    try {
-        if (req.user.role !== "admin") {
-            return res.status(403).json({ message: "Access denied" });
-        }
-      const { authorId, bookId } = req.params;
-      const updatedAuthor = await Author.findByIdAndUpdate(
-        authorId,
-        { $pull: { books: { bookId: bookId } } },
-        { new: true }
-      );
-  
-      if (!updatedAuthor) {
-        return res.status(404).json({ message: "Author not found" });
-      }
-  
-      res.json({
-        message: "Book removed from author successfully",
-        author: updatedAuthor
+    author.authorName = authorName || author.authorName;
+    author.dateOfBirth = dateOfBirth || author.dateOfBirth;
+    author.bio = bio || author.bio;
+
+    await author.save();
+
+    res.status(200).json({
+      message: "Author updated successfully",
+      author: author,
     });
-
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }; 
-
-// Delete author (Admin)
-exports.deleteAuthor = async (req, res) => {
-    try {
-        if (req.user.role !== "admin") {
-            return res.status(400).json({ message: "Access denied." });
-        }
-
-        await Author.findByIdAndDelete(req.params.id);
-        res.json({ message: "Author deleted" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
+
+// Delete a book from an author
+exports.deleteBookFromAuthor = async (req, res) => {
+  try {
+    const author = await Author.findById(req.params.authorId);
+    if (!author) {
+      return res.status(404).json({ message: "Author not found" });
+    }
+
+    author.books = author.books.filter(
+      (book) => book.bookId.toString() !== req.params.bookId
+    );
+
+    await author.save();
+
+    res.status(200).json({
+      message: "Book deleted from author successfully",
+      author: author,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Delete an author
+exports.deleteAuthor = async (req, res) => {
+  try {
+    const author = await Author.findByIdAndDelete(req.params.id);
+    if (!author) {
+      return res.status(404).json({ message: "Author not found" });
+    }
+
+    res.status(200).json({ message: "Author deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Export the upload middleware for use in routes
+exports.upload = upload;

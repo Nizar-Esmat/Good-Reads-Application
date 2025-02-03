@@ -47,8 +47,6 @@ exports.login = async (req, res) => {
 exports.register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    console.log(req.file); // Should show the uploaded file details
-    console.log(req.body); // Should show { name, email, password, role }
     // Check if an image file was uploaded
     if (!req.file) {
       return res.status(400).json({ message: "Please upload an image" });
@@ -63,7 +61,7 @@ exports.register = async (req, res) => {
       email,
       password: hashedPassword,
       role,
-      avatar: req.file.path, // Cloudinary image URL
+      avatar:await req.file.path, // Cloudinary image URL
     });
 
     await user.save();
