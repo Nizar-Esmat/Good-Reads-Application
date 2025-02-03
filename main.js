@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+
 const PORT = process.env.PORT || 3000;
 require("dotenv").config();
 
@@ -24,6 +25,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/authors", authorRoutes);
+
 
 // Start the server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
