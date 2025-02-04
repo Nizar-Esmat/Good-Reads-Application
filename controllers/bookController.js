@@ -50,12 +50,9 @@ exports.uploadBookFiles = multer({
 // Create a new book (admin only)
 exports.createBook = async (req, res) => {
   try {
-    // Check if the user is an admin
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied" });
     }
-
-    // Extract fields from the request body
     const {
       bookName,
       authorName,
@@ -64,60 +61,96 @@ exports.createBook = async (req, res) => {
       reviews,
       categoryName,
       description,
+      coverImage,
       shelve,
     } = req.body;
 
-    // Check if the book already exists
     const existingBook = await Book.findOne({ bookName, authorName });
     if (existingBook) {
       return res.status(400).json({ message: "This book already exists" });
     }
 
-    // Upload cover image to Cloudinary
-    let coverImageUrl = "";
-    if (req.files['coverImage']) {
-      const coverImageResult = await cloudinary.uploader.upload(req.files['coverImage'][0].path, {
-        folder: "book_covers",
-        resource_type: "image",
-      });
-      coverImageUrl = coverImageResult.secure_url;
-    }
-
-    // Upload book file to Cloudinary
-    let bookFileUrl = "";
-    if (req.files['bookFile']) {
-      const bookFileResult = await cloudinary.uploader.upload(req.files['bookFile'][0].path, {
-        folder: "book_files",
-        resource_type: "raw",
-      });
-      bookFileUrl = bookFileResult.secure_url;
-    }
-
-    // Create a new book with the uploaded cover image and book file
     const book = new Book({
-      bookName,
-      authorName,
+      bookName: bookName,
+      authorName: authorName,
       averageRating: averageRating || 0,
       ratings: ratings || 0,
       reviews: reviews || [],
       categoryName: categoryName || "Unknown",
       description: description || "",
-      coverImage: await coverImageUrl, // Use the Cloudinary URL for the cover image
-      bookFile: await bookFileUrl,     // Use the Cloudinary URL for the book file
+      coverImage: coverImage || "",
       shelve: shelve || "Want To Read",
     });
-
-    // Save the book to the database
     await book.save();
-
-    // Send the response   
-    res.status(201).json({
-      message: "Book created successfully",
-      book: book,
-    });
+    res.status(201).json({ message: "Book created successfully", book });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+
+  // Extract fields from the request body
+  const {
+    bookName,
+    authorName,
+    averageRating,
+    ratings,
+    reviews,
+    categoryName,
+    description,
+    shelve,
+  } = req.body;
+
+  // Check if the book already exists
+  const existingBook = await Book.findOne({ bookName, authorName });
+  if (existingBook) {
+    return res.status(400).json({ message: "This book already exists" });
+  }
+
+  // Upload cover image to Cloudinary
+  let coverImageUrl = "";
+  if (req.files['coverImage']) {
+    const coverImageResult = await cloudinary.uploader.upload(req.files['coverImage'][0].path, {
+      folder: "book_covers",
+      resource_type: "image",
+    });
+    coverImageUrl = coverImageResult.secure_url;
+  }
+
+  // Upload book file to Cloudinary
+  let bookFileUrl = "";
+  if (req.files['bookFile']) {
+    const bookFileResult = await cloudinary.uploader.upload(req.files['bookFile'][0].path, {
+      folder: "book_files",
+      resource_type: "raw",
+    });
+    bookFileUrl = bookFileResult.secure_url;
+  }
+
+  // Create a new book with the uploaded cover image and book file
+  const book = new Book({
+    bookName,
+    authorName,
+    averageRating: averageRating || 0,
+    ratings: ratings || 0,
+    reviews: reviews || [],
+    categoryName: categoryName || "Unknown",
+    description: description || "",
+    coverImage: await coverImageUrl, // Use the Cloudinary URL for the cover image
+    bookFile: await bookFileUrl,     // Use the Cloudinary URL for the book file
+    shelve: shelve || "Want To Read",
+  });
+
+  // Save the book to the database
+  await book.save();
+
+  // Send the response   
+  res.status(201).json({
+    message: "Book created successfully",
+    book: book,
+  });
+}
+ catch (err) {
+  res.status(500).json({ error: err.message });
+}
 };
 // Get all books
 exports.getAllBooks = async (req, res) => {

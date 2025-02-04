@@ -19,6 +19,7 @@ const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const bookRoutes = require("./routes/books"); 
 const authorRoutes = require("./routes/authors"); 
+const categoryRoutes = require("./routes/category"); 
 
 
 // Use routes
