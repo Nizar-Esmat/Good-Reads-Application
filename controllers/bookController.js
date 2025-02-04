@@ -51,8 +51,7 @@ exports.uploadBookFiles = multer({
 exports.createBook = async (req, res) => {
   try {
     if (req.user.role !== "admin") {
-      return res.status(403).json({ message: "Access denied" });
-    }
+      return res.status(403).json({ message: "Access denied" }); }
     const {
       bookName,
       authorName,
@@ -62,8 +61,8 @@ exports.createBook = async (req, res) => {
       categoryName,
       description,
       coverImage,
-      shelve,
-    } = req.body;
+      bookFile,
+      shelve,  } = req.body;
 
     const existingBook = await Book.findOne({ bookName, authorName });
     if (existingBook) {
@@ -147,11 +146,7 @@ exports.createBook = async (req, res) => {
     message: "Book created successfully",
     book: book,
   });
-}
- catch (err) {
-  res.status(500).json({ error: err.message });
-}
-};
+} 
 // Get all books
 exports.getAllBooks = async (req, res) => {
   try {
