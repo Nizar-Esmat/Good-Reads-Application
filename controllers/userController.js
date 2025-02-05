@@ -41,7 +41,6 @@ exports.getAllUsers = async (req, res) => {
     }
   }
     // Delete a user (Admin only)
-
   exports.deleteUser = async (req, res) => {
     try {
       await User.findByIdAndDelete(req.params.id);

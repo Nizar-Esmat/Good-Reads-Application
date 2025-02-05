@@ -1,3 +1,4 @@
+const { verify } = require("jsonwebtoken");
 const mongoose = require("mongoose");
 
 const UserSchema = new mongoose.Schema({
@@ -7,6 +8,7 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, required: true },
   dateOfBirth: { type: Date },
   status : { type: String, default: "free" },
+  verified : { type: Boolean, default: false },
   avatar : { type: String }
 });
 

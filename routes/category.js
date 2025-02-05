@@ -19,3 +19,5 @@ router.get("/",getAllCategories);
 router.delete("/:id", auth,deleteCategory);
 
 module.exports = router;
+
+

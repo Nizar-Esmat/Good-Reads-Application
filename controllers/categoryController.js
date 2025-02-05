@@ -1,39 +1,81 @@
-const Category = require('../models/Category');
-const Book = require("../models/Books");
-const mongoose = require("mongoose");
-
+  const Category = require('../models/Category');
+  const Book = require("../models/Books");
+  const mongoose = require("mongoose");
+  const cloudinary = require("cloudinary").v2;
+  const { CloudinaryStorage } = require("multer-storage-cloudinary");
+  const multer = require("multer");
+  
+  // Configure Cloudinary
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+  
+  // Set up Multer storage for category cover images
+  const coverImageStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: "category_covers", // Folder for category cover images
+      format: async (req, file) => "png", // Default format
+      public_id: (req, file) => `cover-${Date.now()}`, // Unique public ID
+      resource_type: "image", // Explicitly set resource_type to "image"
+    },
+  });
+  
+  // Create Multer upload middleware for cover images
+  const uploadCoverImage = multer({ storage: coverImageStorage });
+  
+  // Export the upload middleware for use in routes
+  exports.uploadCoverImage = uploadCoverImage.single("coverImage");
 // Create a new category (admin )
-exports.createCategory=async(req,res)=>{
-    try{
-        if (req.user.role !== "admin") {
-            return res.status(403).json({ message: "Access denied" });
-        }
-        const{ categoryName,description,coverImage}=req.body;
-        
-        
-        const existingCategry = await Category.findOne({ categoryName });
-        if (existingCategry) {
-            return res.status(400).json({ message: "This categry already exists" });
-        }
-
-        if (!categoryName || !description) {
-            return res.status(400).json({ message: "categoryName and description are required" });
-        }
-
-        const category = new Category({
-            categoryName:categoryName,
-            description:description,
-            coverImage:coverImage,
-            books:[],
-          });
-        await category.save();
-        res.status(201).json({message: "category created successfully",category});
+exports.createCategory = async (req, res) => {
+  try {
+    // Check if the user is an admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
     }
-    catch (err) {
-        res.status(500).json({ message: "Error creating category" });
+
+    const { categoryName, description } = req.body;
+
+    // Check if the category already exists
+    const existingCategory = await Category.findOne({ categoryName });
+    if (existingCategory) {
+      return res.status(400).json({ message: "This category already exists" });
     }
+
+    // Validate required fields
+    if (!categoryName || !description) {
+      return res.status(400).json({ message: "categoryName and description are required" });
+    }
+
+    // Upload cover image to Cloudinary
+    let coverImageUrl = "";
+    if (req.file) {
+      const coverImageResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: "category_covers",
+        resource_type: "image",
+      });
+      coverImageUrl = coverImageResult.secure_url;
+    }
+
+    // Create a new category
+    const category = new Category({
+      categoryName,
+      description,
+      coverImage: await coverImageUrl, // Use the Cloudinary URL for the cover image
+      books: [],
+    });
+
+    // Save the category to the database
+    await category.save();
+
+    // Send the response
+    res.status(201).json({ message: "Category created successfully", category });
+  } catch (err) {
+    res.status(500).json({ message: "Error creating category", error: err.message });
+  }
 };
-
 // add book to category (admin )
 exports.addBooksToCategory = async (req, res) => {
     try {

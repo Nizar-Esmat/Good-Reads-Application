@@ -7,15 +7,15 @@ const auth = require("../middleware/auth");
 router.post('/' , auth, bookController.uploadBookFiles, bookController.createBook);
 
 // Route to get all books
-router.get('/books', bookController.getAllBooks);
+router.get('/', bookController.getAllBooks);
 
 // Route to get a book by ID
-router.get('/books/:id', bookController.getBookById);
+router.get('/:id', bookController.getBookById);
 
 // Route to update a book
-router.put('/books/:id', bookController.updateBook);
+router.put('/:id', bookController.updateBook);
 
 // Route to delete a book
-router.delete('/books/:id', bookController.deleteBook);
+router.delete('/:id', auth, bookController.deleteBook);
 
 module.exports = router;

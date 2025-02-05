@@ -10,16 +10,16 @@ app.use(express.json());
 
 // Connect to MongoDB
 
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch(err => console.log(err));
 
 // Import routes
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
-const bookRoutes = require("./routes/books"); 
-const authorRoutes = require("./routes/authors"); 
-const categoryRoutes = require("./routes/category"); 
+const bookRoutes = require("./routes/books");
+const authorRoutes = require("./routes/authors");
+const categoryRoutes = require("./routes/category");
 
 
 // Use routes
@@ -27,6 +27,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/authors", authorRoutes);
+app.use("/api/categories", categoryRoutes);
 app.use(cors());
 
 
