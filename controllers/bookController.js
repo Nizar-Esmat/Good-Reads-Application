@@ -49,42 +49,6 @@ exports.uploadBookFiles = multer({
 
 // Create a new book (admin only)
 exports.createBook = async (req, res) => {
-
-    try {
-        if (req.user.role !== "admin") {
-            return res.status(403).json({ message: "Access denied" });
-        }
-        const {
-            bookName,
-            authorName,
-            averageRating,
-            ratings,
-            reviews,
-            categoryName,
-            description,
-            coverImage,
-        } = req.body;
-
-        const existingBook = await Book.findOne({ bookName, authorName });
-        if (existingBook) {
-            return res.status(400).json({ message: "This book already exists" });
-        }
-
-        const book = new Book({
-            bookName:bookName,
-            authorName: authorName,
-            averageRating: averageRating || 0,
-            ratings: ratings || 0,
-            reviews: reviews || [],
-            categoryName: categoryName || "Unknown",
-            description: description || "",
-            coverImage : coverImage || "",
-        });
-        await book.save();
-        res.status(201).json({message: "Book created successfully",book});
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-
   try {
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied" });
@@ -155,6 +119,7 @@ exports.createBook = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 // Get all books

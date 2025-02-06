@@ -9,6 +9,45 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
+const Joi = require("joi");
+
+const loginSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    "string.email": "Please provide a valid email address",
+    "string.empty": "Email is required",
+    "any.required": "Email is required",
+  }),
+  password: Joi.string().min(6).required().messages({
+    "string.min": "Password must be at least 6 characters long",
+    "string.empty": "Password is required",
+    "any.required": "Password is required",
+  }),
+});
+
+const resgisterSchema = Joi.object({
+  name: Joi.string().required().messages({
+    "string.empty": "Name is required",
+    "any.required": "Name is required",
+  }),
+  email: Joi.string().email().required().messages({
+    "string.email": "Please provide a valid email address",
+    "string.empty": "Email is required",
+    "any.required": "Email is required",
+  }),
+  password: Joi.string().min(6).required().messages({
+    "string.min": "Password must be at least 6 characters long",
+    "string.empty": "Password is required",
+    "any.required": "Password is required",
+  }),
+  role: Joi.string().required().messages({
+    "string.empty": "Role is required",
+    "any.required": "Role is required",
+    }),
+  avatar: Joi.string().required().messages({
+    "string.empty": "Avatar is required",
+    "any.required": "Avatar is required",
+  })
+});
 
 let transport = nodemailer.createTransport({
   service: "gmail",
@@ -41,14 +80,26 @@ const upload = multer({ storage: storage });
 // Login
 exports.login = async (req, res) => {
   try {
+    // Validate the request body
+    const { error } = loginSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
     const { email, password } = req.body;
+
+    // Check if the user exists
     const user = await Users.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
 
+    // Check if the password is valid
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) return res.status(400).json({ message: "Invalid password" });
 
+    // Generate a JWT token
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET);
+
+    // Send the token in the response
     res.json({ token });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -58,6 +109,11 @@ exports.login = async (req, res) => {
 // Register
 exports.register = async (req, res) => {
   try {
+
+    const {error} = resgisterSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
     const { name, email, password, role } = req.body;
 
     // Check if an image file was uploaded
