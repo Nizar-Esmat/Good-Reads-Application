@@ -42,11 +42,7 @@ const resgisterSchema = Joi.object({
   role: Joi.string().required().messages({
     "string.empty": "Role is required",
     "any.required": "Role is required",
-    }),
-  avatar: Joi.string().required().messages({
-    "string.empty": "Avatar is required",
-    "any.required": "Avatar is required",
-  })
+  }),
 });
 
 let transport = nodemailer.createTransport({
