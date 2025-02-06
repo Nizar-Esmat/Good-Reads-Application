@@ -145,6 +145,26 @@ exports.verifyOTP = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.resendOTP = async (req, res) => {
+  try {
+    let { _id, email } = req.body;
+
+    if (!_id || !email) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }else{
+      await userOTP.deleteMany({_id});
+      sendOTP({_id,email} ,res);
+    }
+  } catch (err) {
+    res.json({
+      status:"failed",
+      message:err.message
+    })
+
+
+  }
+}
 // Send OTP
 const sendOTP = async ({ _id, email }) => {
   try {
