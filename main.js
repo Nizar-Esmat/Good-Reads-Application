@@ -17,18 +17,26 @@ mongoose.connect(process.env.MONGO_URI)
 // Import routes
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
-const bookRoutes = require("./routes/books");
-const authorRoutes = require("./routes/authors");
-const categoryRoutes = require("./routes/category");
-
+const bookRoutes = require("./routes/books"); 
+const authorRoutes = require("./routes/authors"); 
+const categoryRoutes = require("./routes/category"); 
+const ratingRoutes = require("./routes/rating"); 
+const reviewRoutes = require("./routes/review"); 
+const shelveRoutes = require("./routes/shelve"); 
 
 // Use routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/authors", authorRoutes);
+
 app.use("/api/categories", categoryRoutes);
+app.use("/api/ratings", ratingRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/shelves", shelveRoutes);
+
 app.use(cors());
+
 
 
 // Start the server
