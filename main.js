@@ -7,7 +7,7 @@ require("dotenv").config();
 
 const app = express();
 app.use(express.json());
-
+app.use(cors())
 // Connect to MongoDB
 
 mongoose.connect(process.env.MONGO_URI)
@@ -34,9 +34,6 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/shelves", shelveRoutes);
-
-app.use(cors());
-
 
 
 // Start the server
