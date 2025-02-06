@@ -1,5 +1,7 @@
+const cors = require("cors");
 const express = require("express");
 const mongoose = require("mongoose");
+
 const PORT = process.env.PORT || 3000;
 require("dotenv").config();
 
@@ -27,10 +29,15 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/authors", authorRoutes);
+
 app.use("/api/categories", categoryRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/shelves", shelveRoutes);
+
+app.use(cors());
+
+
 
 // Start the server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
