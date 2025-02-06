@@ -15,7 +15,6 @@ exports.createBook = async (req, res) => {
             categoryName,
             description,
             coverImage,
-            shelve,
         } = req.body;
 
         const existingBook = await Book.findOne({ bookName, authorName });
@@ -32,7 +31,6 @@ exports.createBook = async (req, res) => {
             categoryName: categoryName || "Unknown",
             description: description || "",
             coverImage : coverImage || "",
-            shelve: shelve || "Want To Read",
         });
         await book.save();
         res.status(201).json({message: "Book created successfully",book});
