@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
+const Authors = require("../models/Authors");
 
 // Configure Cloudinary
 cloudinary.config({
@@ -44,7 +45,7 @@ exports.uploadBookFiles = multer({
   storage: coverImageStorage, // Use coverImageStorage as the default storage
 }).fields([
   { name: 'coverImage', maxCount: 1 }, // Field name for cover image
-  { name: 'bookFile', maxCount: 1 },   // Field name for book file
+  { name: 'bookFile'},   // Field name for book file
 ]);
 
 // Create a new book (admin only)
@@ -73,6 +74,12 @@ exports.createBook = async (req, res) => {
 
     }
 
+        // Find the author by name
+        const author = await Authors.findOne({ name: authorName });
+        if (!author) {
+          return res.status(404).json({ message: "Author not found" });
+        }
+
     // Upload cover image to Cloudinary
     let coverImageUrl = "";
     if (req.files['coverImage']) {
@@ -93,10 +100,13 @@ exports.createBook = async (req, res) => {
       bookFileUrl = bookFileResult.secure_url;
     }
 
+     
+
     // Create a new book with the uploaded cover image and book file
     const book = new Book({
       bookName,
       authorName,
+      authorId : author._id,
       averageRating: averageRating || 0,
       ratings: ratings || 0,
       reviews: reviews || [],
@@ -104,6 +114,7 @@ exports.createBook = async (req, res) => {
       description: description || "",
       coverImage: await coverImageUrl, // Use the Cloudinary URL for the cover image
       bookFile: await bookFileUrl,     // Use the Cloudinary URL for the book file
+      clicked ,
       shelve: shelve || "Want To Read",
     });
 
@@ -120,7 +131,20 @@ exports.createBook = async (req, res) => {
   }
 };
 
-
+exports.addclicked = async (req, res) => {
+  try {
+    const { bookId, userId } = req.params;
+    const book = await Book.findById(bookId);
+    if (!book) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+    book.clicked += 1;
+    await book.save();
+    res.status(200).json({ message: "Book clicked successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 // Get all books
 exports.getAllBooks = async (req, res) => {
@@ -148,8 +172,9 @@ exports.getBookById = async (req, res) => {
 // Update a book
 exports.updateBook = async (req, res) => {
   try {
-    const { bookName, authorName, averageRating, ratings, reviews, categoryName, description, shelve } = req.body;
+    const { bookName,  authorName, averageRating, ratings, reviews, categoryName, description, shelve } = req.body;
     const book = await Book.findById(req.params.id);
+    const author = await Authors.findOne({ name: authorName });
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
@@ -157,6 +182,7 @@ exports.updateBook = async (req, res) => {
     // Update fields
     book.bookName = bookName || book.bookName;
     book.authorName = authorName || book.authorName;
+    book.authorId = author._id;
     book.averageRating = averageRating || book.averageRating;
     book.ratings = ratings || book.ratings;
     book.reviews = reviews || book.reviews;

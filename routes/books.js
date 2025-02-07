@@ -18,4 +18,7 @@ router.put('/:id', bookController.updateBook);
 // Route to delete a book
 router.delete('/:id', auth, bookController.deleteBook);
 
+// Route to add a click to a book
+router.put('/add-clicked/:id', bookController.addclicked);  
+
 module.exports = router;
