@@ -36,7 +36,6 @@ exports.createBook = async (req, res) => {
 
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied" }); }
-
     upload(req, res, async (err) => {
       if (err) {
         console.error("Multer Error:", err);
