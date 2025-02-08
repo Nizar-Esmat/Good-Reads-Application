@@ -36,16 +36,6 @@ exports.createBook = async (req, res) => {
 
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied" }); }
-  // Extract fields from the request body
-  const {
-    bookName,
-    authorName,
-    averageRating,
-    ratings,
-    reviews,
-    categoryName,
-    description,
-  } = req.body;
 
     upload(req, res, async (err) => {
       if (err) {
