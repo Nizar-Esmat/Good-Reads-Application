@@ -184,7 +184,7 @@ exports.register = async (req, res) => {
     await tempUser.save();
 
     // Send OTP to the user's email
-    const otpResponse = await sendOTP({ _id: tempUser._id, email: tempUser.email });
+    const otpResponse = await sendOTP({ email: tempUser.email });
 
     // Send the response to the client
     res.json(otpResponse);
@@ -252,13 +252,17 @@ exports.verifyOTP = async (req, res) => {
 // Resend OTP
 exports.resendOTP = async (req, res) => {
   try {
-    let { _id, email } = req.body;
+    let { email } = req.body;
 
-    if (!_id || !email) {
+    
+    if (!email) {
       return res.status(400).json({ message: "Missing required fields" });
     }else{
-      await userOTP.deleteMany({_id});
-      sendOTP({_id,email} ,res);
+      const user = await Users.findOne({ email });
+      if (!user) return res.status(400).json({ message: "User not found" });
+      const userId = user._id
+      await userOTP.deleteMany({userId});
+      // sendOTP({user._id,email} ,res);
     }
   } catch (err) {
     res.json({
