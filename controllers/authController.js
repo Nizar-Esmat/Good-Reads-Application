@@ -1,4 +1,5 @@
 const Users = require("../models/Users");
+const PurchasedBook = require("../models/PurchasedBook");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cloudinary = require('cloudinary').v2;
@@ -37,7 +38,9 @@ exports.login = async (req, res) => {
     if (!isValidPassword) return res.status(400).json({ message: "Invalid password" });
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET);
-    res.json({ token });
+    const purchasedBooks = await PurchasedBook.find({ userId: user._id }).populate("bookId");
+    
+    res.json({ token , user, purchasedBooks });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -65,6 +68,7 @@ exports.register = async (req, res) => {
     });
 
     await user.save();
+
     res.status(201).json({ message: "User registered successfully", user });
   } catch (err) {
     res.status(500).json({ error: err.message });

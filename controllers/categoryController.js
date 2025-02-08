@@ -113,7 +113,6 @@ exports.getAllCategories = async (req, res) => {
     limit = parseInt(limit) || 10;
 
     const skip = (page - 1) * limit;
-
     let searchQuery = {};
     if (search) {
       searchQuery = {

@@ -49,80 +49,9 @@ exports.uploadBookFiles = multer({
 
 // Create a new book (admin only)
 exports.createBook = async (req, res) => {
-
-    try {
-        if (req.user.role !== "admin") {
-            return res.status(403).json({ message: "Access denied" });
-        }
-        const {
-            bookName,
-            authorName,
-            averageRating,
-            ratings,
-            reviews,
-            categoryName,
-            description,
-            coverImage,
-        } = req.body;
-
-        const existingBook = await Book.findOne({ bookName, authorName });
-        if (existingBook) {
-            return res.status(400).json({ message: "This book already exists" });
-        }
-
-        const book = new Book({
-            bookName:bookName,
-            authorName: authorName,
-            averageRating: averageRating || 0,
-            ratings: ratings || 0,
-            reviews: reviews || [],
-            categoryName: categoryName || "Unknown",
-            description: description || "",
-            coverImage : coverImage || "",
-        });
-        await book.save();
-        res.status(201).json({message: "Book created successfully",book});
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-
   try {
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied" }); }
-    const {
-      bookName,
-      authorName,
-      averageRating,
-      ratings,
-      reviews,
-      categoryName,
-      description,
-      coverImage,
-      bookFile,
-      shelve,  } = req.body;
-
-    const existingBook = await Book.findOne({ bookName, authorName });
-    if (existingBook) {
-      return res.status(400).json({ message: "This book already exists" });
-
-    }
-
-    const book = new Book({
-      bookName: bookName,
-      authorName: authorName,
-      averageRating: averageRating || 0,
-      ratings: ratings || 0,
-      reviews: reviews || [],
-      categoryName: categoryName || "Unknown",
-      description: description || "",
-      coverImage: coverImage || "",
-      shelve: shelve || "Want To Read",
-    });
-    await book.save();
-    res.status(201).json({ message: "Book created successfully", book });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-
   // Extract fields from the request body
   const {
     bookName,
@@ -132,7 +61,6 @@ exports.createBook = async (req, res) => {
     reviews,
     categoryName,
     description,
-    shelve,
   } = req.body;
 
   // Check if the book already exists
@@ -172,7 +100,6 @@ exports.createBook = async (req, res) => {
     description: description || "",
     coverImage: await coverImageUrl, // Use the Cloudinary URL for the cover image
     bookFile: await bookFileUrl,     // Use the Cloudinary URL for the book file
-    shelve: shelve || "Want To Read",
   });
 
   // Save the book to the database
@@ -183,7 +110,12 @@ exports.createBook = async (req, res) => {
     message: "Book created successfully",
     book: book,
   });
-} 
+} catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
 // Get all books
 exports.getAllBooks = async (req, res) => {
   try {
@@ -198,10 +130,12 @@ exports.getAllBooks = async (req, res) => {
 exports.getBookById = async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
+
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
-    res.status(200).json(book);
+
+    return res.status(200).json({ message: "Book content is here!", book })
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -250,5 +184,6 @@ exports.deleteBook = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 // Export the upload middleware
 exports.upload = multer();
