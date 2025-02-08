@@ -331,12 +331,12 @@ const sendOTP = async ({email}) => {
     // Hash the OTP
     const hashedOtp = await bcrypt.hash(otp.toString(), 10);
 
-    const _id = await Users.findOne({ email });
+    const user = await Users.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
 
     // Save the OTP to the database
     const newOTP = new userOTP({
-      userId: _id,
+      userId: user._id,
       otp: hashedOtp,
       createdAt: Date.now(),
       expiresAt: Date.now() + 600000, // OTP expires in 10 minutes
