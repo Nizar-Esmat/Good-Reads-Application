@@ -73,6 +73,21 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage: storage });
 
+exports.auth = (req, res) => {
+  const token = req.header("Authorization");
+  if (!token) return res.status(401).json({ message: "Access denied" });
+
+  try {
+    const tokenWithoutBearer = token.replace("Bearer ", "").trim();
+    const decodedUser = jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET);
+    res.status(200).json({
+      id: decodedUser.id,
+    })
+  } catch (err) {
+    res.status(400).json({ message: "Invalid token" });
+  }
+};
+
 // Login
 exports.login = async (req, res) => {
   try {

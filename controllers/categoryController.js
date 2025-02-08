@@ -167,10 +167,10 @@ exports.getAllCategories = async (req, res) => {
     const totalPages = Math.ceil(totalCategories / limit);
 
     res.json({
-      totalCategories,
+      total: totalCategories,
       totalPages,
       currentPage: page,
-      categories,
+      array: categories,
     });
   } catch (err) {
     res.status(500).json({ message: "Error fetching categories" });
