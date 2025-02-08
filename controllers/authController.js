@@ -96,12 +96,48 @@ exports.login = async (req, res) => {
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET);
 
     // Send the token in the response
-    res.json({ token });
+    res.json({ 
+      token,
+      user
+     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// login admin only
+exports.adminLogin = async (req , res) =>{
+  try{
+  const {error} = loginSchema.validate(req.body)
+
+  if(error){
+    return res.status(400).json({message : error.details[0].message})
+  }
+
+  const {email , password} = req.body
+
+  const user = await Users.findOne({email})
+
+  if(!user){
+    return res.status(400).json({message : "uesr not found"})
+  }
+
+  if(user.role !== "admin"){
+    return res.status(403).json({ message: "Access denied. Admin privileges required." }); 
+  }
+
+  const isValidPassword = await bcrypt.compare(password, user.password);
+  if (!isValidPassword) {
+    return res.status(400).json({ message: "Invalid password" });
+  }
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET);
+
+    res.json({ token });
+}catch(err){
+  res.status(500).json({error : err.message})
+}
+}
 // Register
 exports.register = async (req, res) => {
   try {
@@ -198,6 +234,7 @@ exports.verifyOTP = async (req, res) => {
   }
 };
 
+// Resend OTP
 exports.resendOTP = async (req, res) => {
   try {
     let { _id, email } = req.body;
@@ -217,7 +254,77 @@ exports.resendOTP = async (req, res) => {
 
   }
 }
-// Send OTP
+
+
+// Reset password after verifying the OTP
+exports.resetPassword = async (req, res) => {
+  try {
+    const { _id, email, otp, newPassword } = req.body;
+
+    if (!_id || !email || !otp || !newPassword) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const otpDocument = await userOTP.findOne({ userId: _id });
+    if (!otpDocument) {
+      return res.status(400).json({ message: "OTP not found" });
+    }
+
+    const isOtpValid = await bcrypt.compare(otp.toString(), otpDocument.otp);
+    if (!isOtpValid) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (otpDocument.expiresAt < Date.now()) {
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
+
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    const user = await Users.findById(_id);
+
+    const isValidPassword = await bcrypt.compare(hashedPassword, user.password);
+    if (!isValidPassword) {
+      return res.status(400).json({ message: "New password cannot be the same as the old password" });
+    } 
+
+    await Users.findByIdAndUpdate(
+      _id,
+      { password: hashedPassword },
+      { new: true }
+    );
+
+    // Step 7: Delete the OTP document
+    await userOTP.findByIdAndDelete(otpDocument._id);
+
+    res.json({ message: "Password reset successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// request OTP
+exports.sendOTP = async (req, res) => {
+  try {
+    const { _id, email } = req.body;
+
+    // Validate required fields
+    if (!_id || !email) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Send the OTP
+    const result = await sendOTP({ _id, email });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+//method Send OTP
 const sendOTP = async ({ _id, email }) => {
   try {
     // Generate a 4-digit OTP
