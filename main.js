@@ -34,7 +34,6 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/shelves", shelveRoutes);
-
 app.use(cors());
 
 
