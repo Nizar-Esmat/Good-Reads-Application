@@ -322,31 +322,17 @@ exports.resetPassword = async (req, res) => {
 
 // request OTP
 exports.sendOTP = async (req, res) => {
-  try {
-    const { _id, email } = req.body;
-
-    // Validate required fields
-    if (!_id || !email) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-
-    // Send the OTP
-    const result = await sendOTP({ _id, email });
-
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-//method Send OTP
-const sendOTP = async ({ _id, email }) => {
+  //method Send OTP
+const sendOTP = async ({email}) => {
   try {
     // Generate a 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000);
 
     // Hash the OTP
     const hashedOtp = await bcrypt.hash(otp.toString(), 10);
+
+    const _id = await Users.findOne({ email });
+    if (!user) return res.status(400).json({ message: "User not found" });
 
     // Save the OTP to the database
     const newOTP = new userOTP({
@@ -381,5 +367,23 @@ const sendOTP = async ({ _id, email }) => {
     throw new Error(err.message);
   }
 };
+
+  try {
+    const { email } = req.body;
+
+    // Validate required fields
+    if (!email) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Send the OTP
+    const result = await sendOTP({email});
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Middleware for handling image upload
 exports.uploadImage = upload.single('avatar');
