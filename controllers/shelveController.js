@@ -128,3 +128,20 @@ exports.getAllShelvesForUser = async (req, res) => {
       .json({ message: "Error fetching shelves", error: err.message });
   }
 };
+
+
+//delete shelve
+exports.deleteShelve = async (req, res) => {
+  try {
+    const { bookId, userId } = req.params;
+    const deletedShelve = await Shelve.findOneAndDelete({ bookId, userId });
+    if (!deletedShelve) {
+      return res.status(404).json({ message: "Shelve not found" });
+    }
+    res.status(200).json({ message: "Shelve deleted successfully" });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error deleting shelve", error: err.message });
+  }
+}

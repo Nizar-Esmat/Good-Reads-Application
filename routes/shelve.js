@@ -1,21 +1,16 @@
- const express = require("express");
- const auth = require("../middleware/auth");
- const router = express.Router();
- 
- let {
-    addToShelve,
-    updateShelve,
-    getAllShelvesForUser,
-    getBooksByShelve,
- } = require("../controllers/shelveController");
- 
-
-router.post("/", addToShelve);
-router.put("/",  updateShelve);
-router.get("/:userId", getAllShelvesForUser);
-router.get("/:userId/:shelve",  getBooksByShelve); 
+const express = require("express");
+const auth = require("../middleware/auth");
+const router = express.Router();
 
 
- 
- module.exports = router;
- 
+
+let shelveController = require("../controllers/shelveController");
+
+router.post("/", shelveController.addToShelve);
+router.put("/", shelveController.updateShelve);
+router.get("/:userId", shelveController.getAllShelvesForUser);
+router.get("/:userId/:shelve", shelveController.getBooksByShelve);
+router.delete("/:bookId/:userId", shelveController.deleteShelve);
+
+
+module.exports = router;

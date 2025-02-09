@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
+const Books = require("../models/Books");
 
 // Configure Cloudinary
 cloudinary.config({
@@ -49,7 +50,6 @@ exports.createAuthor = async (req, res) => {
       }
       return {
         bookId: bookId,
-        title: book.title
       };
     });
 
@@ -78,9 +78,9 @@ exports.createAuthor = async (req, res) => {
 // Get all authors
 exports.getAllAuthors = async (req, res) => {
   try {
-    const authors = await Author.find();
+    const authors = await Author.find().populate('books.bookId');
     res.status(200).json(authors);
-  } catch (err) {
+  } catch (err) { 
     res.status(500).json({ error: err.message });
   }
 };
@@ -88,7 +88,7 @@ exports.getAllAuthors = async (req, res) => {
 // Get an author by ID
 exports.getAuthorById = async (req, res) => {
   try {
-    const author = await Author.findById(req.params.id);
+    const author = await Author.findById(req.params.id).populate('books.bookId');
     if (!author) {
       return res.status(404).json({ message: "Author not found" });
     }
@@ -101,13 +101,13 @@ exports.getAuthorById = async (req, res) => {
 // Add a book to an author
 exports.addBookToAuthor = async (req, res) => {
   try {
-    const { bookId, title } = req.body;
+    const { bookId } = req.body;
     const author = await Author.findById(req.params.authorId);
     if (!author) {
       return res.status(404).json({ message: "Author not found" });
     }
 
-    author.books.push({ bookId, title });
+    author.books.push({ bookId });
     await author.save();
 
     res.status(200).json({
@@ -169,16 +169,34 @@ exports.deleteBookFromAuthor = async (req, res) => {
 // Delete an author
 exports.deleteAuthor = async (req, res) => {
   try {
-    const author = await Author.findByIdAndDelete(req.params.id);
+    const author = await Author.findById(req.params.id);
+
     if (!author) {
       return res.status(404).json({ message: "Author not found" });
     }
 
-    res.status(200).json({ message: "Author deleted successfully" });
+    const bookIds = author.books.map(book => book.bookId);
+
+    const books = await Books.find(
+      { _id: { $in: bookIds } },  
+      { bookName: 1, _id: 0 }     
+    );
+
+    const deletedBookNames = books.map(book => book.bookName);
+
+    await Books.deleteMany({ _id: { $in: bookIds } });
+
+    await Author.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      message: "Author and associated books deleted successfully",
+      deletedAuthor: author.name,
+      deletedBooks: deletedBookNames, 
+    });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
 
-// Export the upload middleware for use in routes
 exports.upload = upload;
