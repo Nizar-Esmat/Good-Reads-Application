@@ -6,6 +6,8 @@ const auth = require("../middleware/auth");
 // Route to create a new book
 router.post("/", auth, bookController.createBook);
 
+router.get("/half-pdf", bookController.halfpdf);
+
 // Route to get all books
 router.get("/", bookController.getAllBooks);
 
@@ -20,5 +22,11 @@ router.delete("/:id", auth, bookController.deleteBook);
 
 // Route to add a click to a book
 router.put("/add-clicked/:id", bookController.addclicked);
+
+
+//get book by name
+router.get("/getBookByName/:bookName", bookController.getBookByName);
+
+
 
 module.exports = router;

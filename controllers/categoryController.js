@@ -1,9 +1,9 @@
   const Category = require('../models/Category');
-  const Book = require("../models/Books");
   const mongoose = require("mongoose");
   const cloudinary = require("cloudinary").v2;
   const { CloudinaryStorage } = require("multer-storage-cloudinary");
   const multer = require("multer");
+  const Books = require('../models/Books');
   
   // Configure Cloudinary
   cloudinary.config({
@@ -28,6 +28,8 @@
   
   // Export the upload middleware for use in routes
   exports.uploadCoverImage = uploadCoverImage.single("coverImage");
+
+
 // Create a new category (admin )
 exports.createCategory = async (req, res) => {
   try {
@@ -38,33 +40,38 @@ exports.createCategory = async (req, res) => {
 
     const { categoryName, description } = req.body;
 
+    // Validate required fields
+    if (!categoryName || !description) {
+      return res.status(400).json({ message: "categoryName and description are required" });
+    }
+
     // Check if the category already exists
     const existingCategory = await Category.findOne({ categoryName });
     if (existingCategory) {
       return res.status(400).json({ message: "This category already exists" });
     }
 
-    // Validate required fields
-    if (!categoryName || !description) {
-      return res.status(400).json({ message: "categoryName and description are required" });
-    }
-
-    // Upload cover image to Cloudinary
+    // Upload cover image to Cloudinary if a file is provided
     let coverImageUrl = "";
     if (req.file) {
-      const coverImageResult = await cloudinary.uploader.upload(req.file.path, {
-        folder: "category_covers",
-        resource_type: "image",
-      });
-      coverImageUrl = coverImageResult.secure_url;
+      try {
+        const coverImageResult = await cloudinary.uploader.upload(req.file.path, {
+          folder: "category_covers",
+          resource_type: "image",
+        });
+        coverImageUrl = coverImageResult.secure_url;
+      } catch (error) {
+        console.error("Cloudinary Upload Error:", error);
+        return res.status(500).json({ message: "Failed to upload cover image to Cloudinary" });
+      }
     }
 
     // Create a new category
     const category = new Category({
       categoryName,
       description,
-      coverImage: await coverImageUrl, // Use the Cloudinary URL for the cover image
-      books: [],
+      coverImage: coverImageUrl, // Use the Cloudinary URL for the cover image
+      books: [], // Initialize an empty array for books
     });
 
     // Save the category to the database
@@ -73,6 +80,7 @@ exports.createCategory = async (req, res) => {
     // Send the response
     res.status(201).json({ message: "Category created successfully", category });
   } catch (err) {
+    console.error("Error creating category:", err);
     res.status(500).json({ message: "Error creating category", error: err.message });
   }
 };
@@ -136,7 +144,7 @@ exports.updateCategory = async (req, res) => {
 // Get a Category by id
 exports.getCategoryById = async (req, res) => {
   try {
-    const category = await Category.findById(req.params.id);
+    const category = await Category.findById(req.params.id).populate('books.bookId');
     if (!category)
       return res.status(404).json({ message: "Category not found" });
     res.json(category);
@@ -161,7 +169,7 @@ exports.getAllCategories = async (req, res) => {
       };
     }
 
-    const categories = await Category.find(searchQuery).skip(skip).limit(limit);
+    const categories = await Category.find(searchQuery).skip(skip).limit(limit).populate('books.bookId');
     const totalCategories = await Category.countDocuments(searchQuery);
 
     const totalPages = Math.ceil(totalCategories / limit);
@@ -177,15 +185,30 @@ exports.getAllCategories = async (req, res) => {
   }
 };
 
+
 //delete category
 exports.deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
+
     const category = await Category.findByIdAndDelete(id);
-    if (!category)
+    if (!category) {
       return res.status(404).json({ message: "Category not found" });
-    res.json({ message: "Category deleted" });
+    }
+
+    const booksWithCategory = await Books.find({ categoryID: category._id });
+
+    const deletedBookNames = booksWithCategory.map(book => book.bookName);
+
+    await Books.deleteMany({ categoryID: category._id });
+
+    res.json({
+      message: "Category and associated books deleted successfully",
+      deletedCategory: category.categoryName, 
+      deletedBooks: deletedBookNames,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Error deleting category" });
+    console.error("Error deleting category and associated books:", err);
+    res.status(500).json({ message: "Error deleting category and associated books" });
   }
 };

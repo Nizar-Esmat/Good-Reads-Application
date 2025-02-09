@@ -3,6 +3,8 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 const Authors = require("../models/Authors");
+const Category = require("../models/Category");
+const mongoose = require('mongoose');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -29,6 +31,60 @@ const upload = multer({
 ]);
 
 
+// Function to fetch a specific page of a PDF// Function to fetch a specific page of a PDF
+const fetchPdfPage = async (publicId, pageNumber) => {
+  try {
+    // Validate inputs
+    if (!publicId || typeof publicId !== "string") {
+      throw new Error("Invalid publicId: must be a non-empty string");
+    }
+
+    if (!pageNumber || typeof pageNumber !== "number" || pageNumber < 1) {
+      throw new Error("Invalid pageNumber: must be a positive integer");
+    }
+
+    // Generate the URL for the specific page
+    const url = cloudinary.url(`${publicId}.pdf`, {
+      transformation: [
+        { page: pageNumber }, // Fetch the specified page
+      ],
+      sign_url: true, // Enable URL signing
+    });
+
+    console.log("Generated URL for page", pageNumber, ":", url);
+    return url;
+  } catch (err) {
+    console.error("Error fetching PDF page:", err.message);
+    throw err; // Re-throw the error for the caller to handle
+  }
+};
+
+exports.halfpdf = async (req, res) => {
+  try {
+    const { publicId, pageNumber } = req.body;
+
+    // Validate request body
+    if (!publicId || !pageNumber) {
+      return res.status(400).json({ error: "Missing publicId or pageNumber in request body" });
+    }
+
+    // Fetch the PDF page URL
+    const url = await fetchPdfPage(publicId, pageNumber);
+
+    // Send the URL in the response
+    res.json({ url });
+  } catch (err) {
+    console.error("Error fetching PDF page:", err.message);
+
+    if (err.response && err.response.status === 401) {
+      return res.status(401).json({ error: "Unauthorized: Check Cloudinary credentials" });
+    }
+
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
 exports.createBook = async (req, res) => {
   try {
     console.log("Request Body:", req.body);
@@ -46,11 +102,11 @@ exports.createBook = async (req, res) => {
 
       const {
         bookName,
-        authorName,
+        authorId,
         averageRating,
         ratings,
         reviews,
-        categoryName,
+        categoryID,
         description,
         shelve,
       } = req.body;
@@ -60,10 +116,15 @@ exports.createBook = async (req, res) => {
         return res.status(400).json({ message: "Book already exists" });
       }
 
-      let author = await Authors.findOne({ authorName });
+      // Corrected queries
+      let author = await Authors.findById(authorId); // Use findById directly
+      let categories = await Category.findById(categoryID); // Use findById directly
+
       if (!author) {
-        author = new Authors({ authorName });
-        await author.save();
+        return res.status(404).json({ message: "Author not found" });
+      }
+      if (!categories) {
+        return res.status(404).json({ message: "Category not found" });
       }
 
       let bookFileUrl, coverImageUrl;
@@ -101,12 +162,13 @@ exports.createBook = async (req, res) => {
 
       const book = new Book({
         bookName,
-        authorName: authorName || "Unknown",
+        authorName: author.authorName || "Unknown",
         authorId: author._id,
+        categoryID: categories._id,
         averageRating: averageRating || 0,
         ratings: ratings || 0,
         reviews: reviews || [],
-        categoryName: categoryName || "Unknown",
+        categoryName: categories.categoryName || "Unknown",
         description: description || "",
         coverImage: coverImageUrl, // Use the resolved URL
         bookFile: bookFileUrl, // Use the resolved URL
@@ -115,6 +177,13 @@ exports.createBook = async (req, res) => {
 
       await book.save();
       console.log("Book saved successfully:", book);
+      // add the book to auther
+      author.books.push({ bookId: book._id });
+      await author.save();
+      
+      //add the book to category
+      categories.books.push({ bookId: book._id });
+      await categories.save();
 
       res.status(201).json({
         message: "Book created successfully",
@@ -125,8 +194,7 @@ exports.createBook = async (req, res) => {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
-};
-
+};    
 // Update a book's clicked count
 exports.addclicked = async (req, res) => {
   try {
@@ -169,21 +237,19 @@ exports.getBookById = async (req, res) => {
 // Update a book
 exports.updateBook = async (req, res) => {
   try {
-    const { bookName, authorName, averageRating, ratings, reviews, categoryName, description, shelve } = req.body;
+    const { bookName, averageRating, ratings, reviews, categoryID, description, shelve } = req.body;
     const book = await Book.findById(req.params.id);
-    const author = await Authors.findOne({ name: authorName });
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
+    let categories = await Category.findOne({ categoryID });
 
-    // Update fields
+    // Update fields    
     book.bookName = bookName || book.bookName;
-    book.authorName = authorName || book.authorName;
-    book.authorId = author._id;
     book.averageRating = averageRating || book.averageRating;
     book.ratings = ratings || book.ratings;
     book.reviews = reviews || book.reviews;
-    book.categoryName = categoryName || book.categoryName;
+    book.categoryName = categories.categoryName || book.categoryName;
     book.description = description || book.description;
     book.shelve = shelve || book.shelve;
 
@@ -212,7 +278,21 @@ exports.deleteBook = async (req, res) => {
   }
 };
 
+exports.getBookByName = async (req, res) => {
+  try{
+    const { bookName } = req.params;
+    const book = await Book.findOne({ bookName: { $regex: new RegExp(bookName, "i") } })
 
+    if(!book){
+      return res.status(404).json({ message: "Book not found" });
+    }
+    res.status(200).json({message : "Book found successfully", book});
+          
+  }catch(err){
+    console.error("Error fetching book by name:", err);
+    res.status(500).json({ message: "Error fetching book by name", error: err.message });
+  }
+}
 
 
 // Export the upload middleware
