@@ -10,6 +10,7 @@ const AuthorSchema = new mongoose.Schema({
   ],
   bio: { type: String, default: "" },
   avatar: { type: String},
+  clicked: { type: Number, default: 0 },
 });
 
 module.exports = mongoose.model("Author", AuthorSchema);

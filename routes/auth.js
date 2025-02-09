@@ -9,5 +9,6 @@ router.post('/resend-otp', authController.resendOTP);
 router.post('/reset-password', authController.resetPassword);
 router.post('/sendOTP' , authController.sendOTP);
 router.post('/admin-login', authController.adminLogin);
+router.get('/admin', authController.authAdmin);
 router.get('/',authController.auth);
 module.exports = router;    

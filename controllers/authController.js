@@ -72,7 +72,7 @@ const storage = new CloudinaryStorage({
 
 
 const upload = multer({ storage: storage });
-
+//auth if user exists
 exports.auth = (req, res) => {
   const token = req.header("Authorization");
   if (!token) return res.status(401).json({ message: "Access denied" });
@@ -85,6 +85,27 @@ exports.auth = (req, res) => {
     })
   } catch (err) {
     res.status(400).json({ message: "Invalid token" });
+  }
+};
+exports.authAdmin = (req, res) => {
+
+  const token = req.header("Authorization");
+  if (!token) return res.status(401).json({ message: "Access denied" });
+  else{
+    try {
+      const tokenWithoutBearer = token.replace("Bearer ", "").trim();
+      const decodedUser = jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET);
+      if(decodedUser.role !== "admin"){
+        return res.status(403).json({ message: "Access denied. Admin privileges required." });
+      }
+      else {
+        res.status(200).json({
+          id: decodedUser.id,
+        })
+      }
+    } catch (err) {
+      res.status(400).json({ message: "Invalid token" });
+    }
   }
 };
 

@@ -75,6 +75,9 @@ exports.createAuthor = async (req, res) => {
   }
 };
 
+//update author clicked count
+
+
 // Get all authors
 exports.getAllAuthors = async (req, res) => {
   try {
