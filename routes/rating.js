@@ -5,7 +5,8 @@ const router = express.Router();
 const{
     createRatingOrUpdate,
     calculateAverageRating,
-    deleteRating
+    deleteRating,
+    getUserRating
 }=require("../controllers/ratingController");
 
 
