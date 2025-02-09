@@ -162,8 +162,8 @@ exports.getAllBooks = async (req, res) => {
     const totalBooks = await Book.countDocuments(); // Get total number of books
 
     res.status(200).json({
-      books,
-      totalBooks,
+      array: books,
+      total: totalBooks,
       totalPages: Math.ceil(totalBooks / limit),
       currentPage: page,
     });
