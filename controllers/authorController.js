@@ -88,9 +88,10 @@ exports.getAllAuthors = async (req, res) => {
     const totalAuthors = await Author.countDocuments();
 
     res.status(200).json({
-      authors,
+      array: authors,
       totalPages: Math.ceil(totalAuthors / limit),
       currentPage: parseInt(page),
+      total: totalAuthors,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
