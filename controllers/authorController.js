@@ -78,9 +78,21 @@ exports.createAuthor = async (req, res) => {
 // Get all authors
 exports.getAllAuthors = async (req, res) => {
   try {
-    const authors = await Author.find().populate('books.bookId');
-    res.status(200).json(authors);
-  } catch (err) { 
+    const { page = 1, limit = 10 } = req.query;
+
+    const authors = await Author.find()
+      .populate('books.bookId')
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const totalAuthors = await Author.countDocuments();
+
+    res.status(200).json({
+      authors,
+      totalPages: Math.ceil(totalAuthors / limit),
+      currentPage: parseInt(page),
+    });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };

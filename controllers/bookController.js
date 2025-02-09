@@ -104,7 +104,7 @@ exports.createBook = async (req, res) => {
         averageRating,
         ratings,
         reviews,
-        categoryID,
+        categoryId,
         description,
         shelve,
       } = req.body;
@@ -116,7 +116,7 @@ exports.createBook = async (req, res) => {
 
       // Corrected queries
       let author = await Authors.findById(authorId); // Use findById directly
-      let categories = await Category.findById(categoryID); // Use findById directly
+      let categories = await Category.findById(categoryId); // Use findById directly
 
       if (!author) {
         return res.status(404).json({ message: "Author not found" });
@@ -162,7 +162,7 @@ exports.createBook = async (req, res) => {
         bookName,
         authorName: author.authorName || "Unknown",
         authorId: author._id,
-        categoryID: categories._id,
+        categoryId: categories._id,
         averageRating: averageRating || 0,
         ratings: ratings || 0,
         reviews: reviews || [],
@@ -226,7 +226,7 @@ exports.getAllBooks = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10; // Default to 10 books per page
     const skip = (page - 1) * limit;
 
-    const books = await Book.find().skip(skip).limit(limit);
+    const books = await Book.find().populate('authorId').populate('categoryId').skip(skip).limit(limit);
     const totalBooks = await Book.countDocuments(); // Get total number of books
 
     res.status(200).json({
@@ -257,12 +257,12 @@ exports.getBookById = async (req, res) => {
 // Update a book
 exports.updateBook = async (req, res) => {
   try {
-    const { bookName, averageRating, ratings, reviews, categoryID, description, shelve } = req.body;
+    const { bookName, averageRating, ratings, reviews, categoryId, description, shelve } = req.body;
     const book = await Book.findById(req.params.id);
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
-    let categories = await Category.findOne({ categoryID });
+    let categories = await Category.findOne({ categoryId });
 
     // Update fields    
     book.bookName = bookName || book.bookName;
