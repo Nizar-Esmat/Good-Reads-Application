@@ -73,6 +73,21 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage: storage });
 
+exports.auth = (req, res) => {
+  const token = req.header("Authorization");
+  if (!token) return res.status(401).json({ message: "Access denied" });
+
+  try {
+    const tokenWithoutBearer = token.replace("Bearer ", "").trim();
+    const decodedUser = jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET);
+    res.status(200).json({
+      id: decodedUser.id,
+    })
+  } catch (err) {
+    res.status(400).json({ message: "Invalid token" });
+  }
+};
+
 // Login
 exports.login = async (req, res) => {
   try {
@@ -169,7 +184,7 @@ exports.register = async (req, res) => {
     await tempUser.save();
 
     // Send OTP to the user's email
-    const otpResponse = await sendOTP({ _id: tempUser._id, email: tempUser.email });
+    const otpResponse = await sendOTP({ email: tempUser.email });
 
     // Send the response to the client
     res.json(otpResponse);
@@ -237,13 +252,17 @@ exports.verifyOTP = async (req, res) => {
 // Resend OTP
 exports.resendOTP = async (req, res) => {
   try {
-    let { _id, email } = req.body;
+    let { email } = req.body;
 
-    if (!_id || !email) {
+    
+    if (!email) {
       return res.status(400).json({ message: "Missing required fields" });
     }else{
-      await userOTP.deleteMany({_id});
-      sendOTP({_id,email} ,res);
+      const user = await Users.findOne({ email });
+      if (!user) return res.status(400).json({ message: "User not found" });
+      const userId = user._id
+      await userOTP.deleteMany({userId});
+      // sendOTP({user._id,email} ,res);
     }
   } catch (err) {
     res.json({
@@ -307,25 +326,8 @@ exports.resetPassword = async (req, res) => {
 
 // request OTP
 exports.sendOTP = async (req, res) => {
-  try {
-    const { _id, email } = req.body;
-
-    // Validate required fields
-    if (!_id || !email) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-
-    // Send the OTP
-    const result = await sendOTP({ _id, email });
-
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-//method Send OTP
-const sendOTP = async ({ _id, email }) => {
+  //method Send OTP
+const sendOTP = async ({email}) => {
   try {
     // Generate a 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000);
@@ -333,9 +335,12 @@ const sendOTP = async ({ _id, email }) => {
     // Hash the OTP
     const hashedOtp = await bcrypt.hash(otp.toString(), 10);
 
+    const user = await Users.findOne({ email });
+    if (!user) return res.status(400).json({ message: "User not found" });
+
     // Save the OTP to the database
     const newOTP = new userOTP({
-      userId: _id,
+      userId: user._id,
       otp: hashedOtp,
       createdAt: Date.now(),
       expiresAt: Date.now() + 600000, // OTP expires in 10 minutes
@@ -366,5 +371,23 @@ const sendOTP = async ({ _id, email }) => {
     throw new Error(err.message);
   }
 };
+
+  try {
+    const { email } = req.body;
+
+    // Validate required fields
+    if (!email) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Send the OTP
+    const result = await sendOTP({email});
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Middleware for handling image upload
 exports.uploadImage = upload.single('avatar');

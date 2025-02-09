@@ -91,9 +91,7 @@ exports.createBook = async (req, res) => {
     console.log("Request Files:", req.files);
 
     if (req.user.role !== "admin") {
-      return res.status(403).json({ message: "Access denied" });
-    }
-
+      return res.status(403).json({ message: "Access denied" }); }
     upload(req, res, async (err) => {
       if (err) {
         console.error("Multer Error:", err);
@@ -211,15 +209,37 @@ exports.addclicked = async (req, res) => {
   }
 };
 
-// Get all books
+// // Get all books
+// exports.getAllBooks = async (req, res) => {
+//   try {
+//     const books = await Book.find();
+//     res.status(200).json(books);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// Get all books with pagination
 exports.getAllBooks = async (req, res) => {
   try {
-    const books = await Book.find();
-    res.status(200).json(books);
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = parseInt(req.query.limit) || 10; // Default to 10 books per page
+    const skip = (page - 1) * limit;
+
+    const books = await Book.find().skip(skip).limit(limit);
+    const totalBooks = await Book.countDocuments(); // Get total number of books
+
+    res.status(200).json({
+      array: books,
+      total: totalBooks,
+      totalPages: Math.ceil(totalBooks / limit),
+      currentPage: page,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Get a book by ID
 exports.getBookById = async (req, res) => {
