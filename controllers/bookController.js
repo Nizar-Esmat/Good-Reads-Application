@@ -59,15 +59,27 @@ exports.createBook = async (req, res) => {
     averageRating,
     ratings,
     reviews,
+    price,
     categoryName,
     description,
   } = req.body;
+
+  // Check if the averageRating between(1-5)
+  let averageRatingNumber = 0;
+    if (averageRating !== undefined) {
+      averageRatingNumber = parseFloat(averageRating);
+      if (isNaN(averageRatingNumber) || averageRatingNumber < 0 || averageRatingNumber > 5) {
+        return res.status(400).json({ message: "Average rating must be a number between 0 and 5" });
+      }
+    }
 
   // Check if the book already exists
   const existingBook = await Book.findOne({ bookName, authorName });
   if (existingBook) {
     return res.status(400).json({ message: "This book already exists" });
   }
+
+  const bookPrice = price !== undefined ? price : 0;
 
   // Upload cover image to Cloudinary
   let coverImageUrl = "";
@@ -93,9 +105,10 @@ exports.createBook = async (req, res) => {
   const book = new Book({
     bookName,
     authorName,
-    averageRating: averageRating || 0,
+    averageRating: averageRating,
     ratings: ratings || 0,
     reviews: reviews || [],
+    price:bookPrice,
     categoryName: categoryName || "Unknown",
     description: description || "",
     coverImage: await coverImageUrl, // Use the Cloudinary URL for the cover image
@@ -144,7 +157,7 @@ exports.getBookById = async (req, res) => {
 // Update a book
 exports.updateBook = async (req, res) => {
   try {
-    const { bookName, authorName, averageRating, ratings, reviews, categoryName, description, shelve } = req.body;
+    const { bookName, authorName, averageRating, ratings, reviews,price , categoryName, description } = req.body;
     const book = await Book.findById(req.params.id);
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
@@ -156,9 +169,9 @@ exports.updateBook = async (req, res) => {
     book.averageRating = averageRating || book.averageRating;
     book.ratings = ratings || book.ratings;
     book.reviews = reviews || book.reviews;
+    book.price = price !== undefined ? price : book.price;
     book.categoryName = categoryName || book.categoryName;
     book.description = description || book.description;
-    book.shelve = shelve || book.shelve;
 
     // Save the updated book
     await book.save();

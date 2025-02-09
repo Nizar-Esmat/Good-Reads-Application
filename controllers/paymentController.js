@@ -1,5 +1,6 @@
 const axios = require("axios");
 const User = require("../models/Users");
+const Book = require("../models/Books");
 const PurchasedBook = require("../models/PurchasedBook");  
 const mongoose = require("mongoose");
 
@@ -22,9 +23,16 @@ async function getAuthToken() {
 }
 
 //create order key
-async function createOrder(authToken, amountCents, userId, bookId) {   
+async function createOrder(authToken, userId, bookId) {   
   try {
-    const merchantOrderId = `${userId}-${bookId}`;
+    const book = await Book.findById(bookId);
+    if (!book) {
+      throw new Error("Book not found");
+    }
+    
+    const amountCents = parseInt(book.price * 100, 10); 
+    const merchantOrderId = `${userId}-${bookId}-${Date.now()}`;
+    
     const response = await axios.post(
       "https://accept.paymob.com/api/ecommerce/orders",
       {
@@ -33,19 +41,22 @@ async function createOrder(authToken, amountCents, userId, bookId) {
         amount_cents: amountCents,
         currency: "EGP",
         merchant_order_id: merchantOrderId,
+        items: []
       }
     );
-    return response.data.id;
+    return { orderId: response.data.id, amountCents };
+
   } catch (error) {
     console.error(
       "Error creating order:",
       error.response?.data || error.message
     );
+    throw error;
   }
 }
 
 //get payment key
-async function getPaymentKey(authToken, orderId, amountCents, userId, bookId,user) {
+async function getPaymentKey(authToken, orderId, amountCents, userId, bookId) {
     try {
 
       const user = await User.findById(userId);
