@@ -219,22 +219,44 @@ exports.addclicked = async (req, res) => {
 //   }
 // };
 
-// Get all books with pagination
+
+//  Get all books with pagination
+
+// exports.getAllBooks = async (req, res) => {
+//   try {
+//     const page = parseInt(req.query.page) || 1; // Default to page 1
+//     const limit = parseInt(req.query.limit) || 10; // Default to 10 books per page
+//     const skip = (page - 1) * limit;
+
+//     const books = await Book.find().populate('authorId').populate('categoryId').skip(skip).limit(limit);
+//     const totalBooks = await Book.countDocuments(); // Get total number of books
+
+//     res.status(200).json({
+//       array: books,
+//       total: totalBooks,
+//       totalPages: Math.ceil(totalBooks / limit),
+//       currentPage: page,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+
 exports.getAllBooks = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1; // Default to page 1
-    const limit = parseInt(req.query.limit) || 10; // Default to 10 books per page
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 10, search = "" } = req.query;
 
-    const books = await Book.find().populate('authorId').populate('categoryId').skip(skip).limit(limit);
-    const totalBooks = await Book.countDocuments(); // Get total number of books
+    const query = search ? { bookName: { $regex: search, $options: "i" } } : {};
 
-    res.status(200).json({
-      array: books,
-      total: totalBooks,
-      totalPages: Math.ceil(totalBooks / limit),
-      currentPage: page,
-    });
+    const books = await Book.find(query).populate('authorId').populate('categoryId')
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const totalBooks = await Book.countDocuments(query);
+    const totalPages = Math.ceil(totalBooks / limit);
+
+    res.status(200).json({ array:books,  total: totalBooks, totalPages ,currentPage: page});
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -253,6 +275,66 @@ exports.getBookById = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+// Get all books
+// exports.getAllBooks = async (req, res) => {
+//   try {
+//     const books = await Book.find();
+//     res.status(200).json(books);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// Get all books with pagination
+// exports.getAllBooks = async (req, res) => {
+//   try {
+//     const page = parseInt(req.query.page) || 1; // Default to page 1
+//     const limit = parseInt(req.query.limit) || 10; // Default to 10 books per page
+//     const skip = (page - 1) * limit;
+
+//     const books = await Book.find().skip(skip).limit(limit);
+//     const totalBooks = await Book.countDocuments(); // Get total number of books
+
+//     res.status(200).json({
+//       array:books,
+//       totalBooks,
+//       totalPages: Math.ceil(totalBooks / limit),
+//       currentPage: page,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+
+
+
+
+// 
+
+// Get a book by name
+exports.getBookByName = async (req, res) => {
+  try {
+    const { name } = req.params;
+    
+    // Use case-insensitive regex for partial matching
+    const book = await Book.findOne({ bookName: { $regex: new RegExp(name, "i") } });
+
+    if (!book) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+
+    res.status(200).json(book);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+// 
+
 
 // Update a book
 exports.updateBook = async (req, res) => {
