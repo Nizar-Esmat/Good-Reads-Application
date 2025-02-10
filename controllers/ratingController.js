@@ -6,12 +6,13 @@ const mongoose = require("mongoose");
 exports.createRatingOrUpdate = async (req, res) => {
   try {
     const { bookId, userId, rating } = req.body;
-    if (rating < 1 || rating > 5) {
-      return res.status(400).json({ message: "Rating betweem 1 and 5 " });
+    const ratingNumber = parseFloat(rating);
+    if (isNaN(ratingNumber) || ratingNumber < 1 || ratingNumber > 5) {
+      return res.status(400).json({ message: "Rating must be a number between 1 and 5" });
     }
     let existingRating = await Rating.findOne({ bookId, userId });
     if (existingRating) {
-      existingRating.rating = rating;
+      existingRating.rating = ratingNumber;
       await existingRating.save();
       res.status(200).json({ message: "reating updated successfully" });
     } else {
@@ -26,7 +27,7 @@ exports.createRatingOrUpdate = async (req, res) => {
 const updateBookAverageRating = async (bookId) => {
     try {
         const ratings = await Rating.aggregate([
-            { $match: { bookId: mongoose.Types.ObjectId(bookId) } },
+            { $match: { bookId:new  mongoose.Types.ObjectId(bookId) } },
             { $group: { _id: "$bookId", averageRating: { $avg: "$rating" }, totalRatings: { $sum: 1 } } }
           ]);
           if (ratings.length === 0) {
@@ -59,6 +60,24 @@ return res.json({ averageRating: ratings[0].averageRating });
   
   } catch (err) {
     return res.status(500).json({ message: "Error calculating average rating", error: err.message });
+  }
+};
+
+
+// Get User Rating for a Book
+exports.getUserRating = async (req, res) => {
+  try {
+      const { bookId, userId } = req.params;
+
+      const rating = await Rating.findOne({ bookId, userId });
+
+      if (!rating) {
+          return res.status(404).json({ message: "No rating found for this user on this book" });
+      }
+
+      res.json({ rating: rating.rating });
+  } catch (error) {
+      res.status(500).json({ message: "Error fetching user rating", error: error.message });
   }
 };
 

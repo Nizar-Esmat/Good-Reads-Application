@@ -12,6 +12,9 @@ router.get("/", bookController.getAllBooks);
 // Route to get a book by ID
 router.get("/:id", bookController.getBookById);
 
+// Route to get a book by name 
+router.get("/name/:name", bookController.getBookByName);
+
 // Route to update a book (including file uploads)
 router.put("/:id", auth, bookController.updateBook);
 

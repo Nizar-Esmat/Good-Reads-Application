@@ -6,7 +6,7 @@ const BookSchema = new mongoose.Schema({
     averageRating: { type: Number, default: 0 },
     ratings: { type: Number, default: 0 },
     reviews: [{ type: String }],
-    categoryID: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     description: { type: String },
     coverImage: { type: String },
     bookFile: { type: String },
