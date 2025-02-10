@@ -114,6 +114,14 @@ exports.createBook = async (req, res) => {
         return res.status(400).json({ message: "Book already exists" });
       }
 
+      if (!authorId) {
+        return res.status(400).json({ message: "Author ID is required" });
+      }
+
+      if (!categoryId) {
+        return res.status(400).json({ message: "Category ID is required" });
+      }
+
       // Corrected queries
       let author = await Authors.findById(authorId); // Use findById directly
       let categories = await Category.findById(categoryId); // Use findById directly
@@ -121,6 +129,7 @@ exports.createBook = async (req, res) => {
       if (!author) {
         return res.status(404).json({ message: "Author not found" });
       }
+
       if (!categories) {
         return res.status(404).json({ message: "Category not found" });
       }
@@ -266,7 +275,7 @@ exports.getAllBooks = async (req, res) => {
 // Get a book by ID
 exports.getBookById = async (req, res) => {
   try {
-    const book = await Book.findById(req.params.id);
+    const book = await Book.findById(req.params.id).populate('authorId');
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
