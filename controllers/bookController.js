@@ -31,7 +31,6 @@ const upload = multer({
 ]);
 
 
-// Function to fetch a specific page of a PDF// Function to fetch a specific page of a PDF
 
 
 
@@ -41,7 +40,8 @@ exports.createBook = async (req, res) => {
     console.log("Request Files:", req.files);
 
     if (req.user.role !== "admin") {
-      return res.status(403).json({ message: "Access denied" }); }
+      return res.status(403).json({ message: "Access denied" });
+    }
     upload(req, res, async (err) => {
       if (err) {
         console.error("Multer Error:", err);
@@ -137,7 +137,7 @@ exports.createBook = async (req, res) => {
       // add the book to auther
       author.books.push({ bookId: book._id });
       await author.save();
-      
+
       //add the book to category
       categories.books.push({ bookId: book._id });
       await categories.save();
@@ -151,7 +151,7 @@ exports.createBook = async (req, res) => {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
-};    
+};
 // Update a book's clicked count
 exports.addclicked = async (req, res) => {
   try {
@@ -215,7 +215,7 @@ exports.getAllBooks = async (req, res) => {
     const totalBooks = await Book.countDocuments(query);
     const totalPages = Math.ceil(totalBooks / limit);
 
-    res.status(200).json({ array:books,  total: totalBooks, totalPages ,currentPage: page});
+    res.status(200).json({ array: books, total: totalBooks, totalPages, currentPage: page });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -267,17 +267,11 @@ exports.getBookById = async (req, res) => {
 //   }
 // };
 
-
-
-
-
-// 
-
 // Get a book by name
 exports.getBookByName = async (req, res) => {
   try {
     const { name } = req.params;
-    
+
     // Use case-insensitive regex for partial matching
     const book = await Book.findOne({ bookName: { $regex: new RegExp(name, "i") } });
 
@@ -340,16 +334,16 @@ exports.deleteBook = async (req, res) => {
 };
 
 exports.getBookByName = async (req, res) => {
-  try{
+  try {
     const { bookName } = req.params;
     const book = await Book.findOne({ bookName: { $regex: new RegExp(bookName, "i") } })
 
-    if(!book){
+    if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
-    res.status(200).json({message : "Book found successfully", book});
-          
-  }catch(err){
+    res.status(200).json({ message: "Book found successfully", book });
+
+  } catch (err) {
     console.error("Error fetching book by name:", err);
     res.status(500).json({ message: "Error fetching book by name", error: err.message });
   }

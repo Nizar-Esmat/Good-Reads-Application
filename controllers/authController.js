@@ -174,10 +174,10 @@ exports.adminLogin = async (req , res) =>{
 exports.register = async (req, res) => {
   try {
 
-    // const {error} = resgisterSchema.validate(req.body);
-    // if (error) {
-    //   return res.status(400).json({ message: error.details[0].message });
-    // }
+    const {error} = resgisterSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
     const { name, email, password, role } = req.body;
 
     // Set default role if not provided
@@ -212,6 +212,7 @@ exports.register = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 // Verify OTP request
 exports.verifyOTP = async (req, res) => {
   try {
