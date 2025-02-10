@@ -225,7 +225,6 @@ exports.registerInAdmin = async (req, res) => {
 
     const { name, email, password, role } = req.body;
 
-
     // Default profile picture URL
     const DEFAULT_PROFILE_PICTURE =
       "https://res.cloudinary.com/dqmnyaqev/image/upload/v1739210735/user_avatars/avatar-1739210734375.png";
@@ -236,8 +235,8 @@ exports.registerInAdmin = async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a temporary user document
-    const tempUser = new TempUsers({
+    // Create a user document
+    const user = new Users({
       name,
       email,
       password: hashedPassword,
@@ -245,18 +244,16 @@ exports.registerInAdmin = async (req, res) => {
       avatar, // Use the uploaded image or the default image
     });
 
-    // Save the temporary user to the database
-    await tempUser.save();
-
-    // Send OTP to the user's email
-    const otpResponse = await sendOTP({ email: tempUser.email });
+    // Save the user to the database
+    await user.save();
 
     // Send the response to the client
-    res.json(otpResponse);
+    res.status(201).json({ message: "User created successfully", user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Verify OTP request
 exports.verifyOTP = async (req, res) => {
