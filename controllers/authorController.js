@@ -75,12 +75,28 @@ exports.createAuthor = async (req, res) => {
   }
 };
 
+//update author clicked count
+
+
 // Get all authors
 exports.getAllAuthors = async (req, res) => {
   try {
-    const authors = await Author.find().populate('books.bookId');
-    res.status(200).json(authors);
-  } catch (err) { 
+    const { page = 1, limit = 10 } = req.query;
+
+    const authors = await Author.find()
+      .populate('books.bookId')
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const totalAuthors = await Author.countDocuments();
+
+    res.status(200).json({
+      array: authors,
+      totalPages: Math.ceil(totalAuthors / limit),
+      currentPage: parseInt(page),
+      total: totalAuthors,
+    });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
@@ -195,6 +211,20 @@ exports.deleteAuthor = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+exports.getAuthorByName = async (req, res) => {
+  try {
+    const { name } = req.params;
+    const author = await Author.findOne({ authorName: name });
+
+    if (!author) {
+      return res.status(404).json({ message: "Author not found" });
+    }
+
+    res.status(200).json(author);
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };

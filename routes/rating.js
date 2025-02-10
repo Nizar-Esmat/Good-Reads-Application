@@ -5,11 +5,13 @@ const router = express.Router();
 const{
     createRatingOrUpdate,
     calculateAverageRating,
-    deleteRating
+    deleteRating,
+    getUserRating
 }=require("../controllers/ratingController");
 
 
 router.post("/", auth,createRatingOrUpdate); 
 router.get("/average-rating/:bookId", calculateAverageRating);
+router.get("/:bookId/:userId", getUserRating);
 router.delete("/:bookId/:userId", auth,deleteRating); 
 module.exports = router;
