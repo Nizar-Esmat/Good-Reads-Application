@@ -11,7 +11,7 @@ const{
 
 
 router.post("/", auth,createReview); 
-router.get("/:bookId", auth,getReviews); 
+router.get("/:bookId", getReviews); 
 router.put('/:bookId/:reviewId', updateReview);
 router.delete("/:bookId/:reviewId", auth,deleteReview); 
 

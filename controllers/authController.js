@@ -39,10 +39,6 @@ const resgisterSchema = Joi.object({
     "string.empty": "Password is required",
     "any.required": "Password is required",
   }),
-  role: Joi.string().required().messages({
-    "string.empty": "Role is required",
-    "any.required": "Role is required",
-  }),
 });
 
 let transport = nodemailer.createTransport({
@@ -178,11 +174,14 @@ exports.adminLogin = async (req , res) =>{
 exports.register = async (req, res) => {
   try {
 
-    const {error} = resgisterSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
+    // const {error} = resgisterSchema.validate(req.body);
+    // if (error) {
+    //   return res.status(400).json({ message: error.details[0].message });
+    // }
     const { name, email, password, role } = req.body;
+
+    // Set default role if not provided
+    const userRole = role || 'user';
 
     // Check if an image file was uploaded
     if (!req.file) {
@@ -197,7 +196,7 @@ exports.register = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role,
+      role: userRole,
       avatar: req.file.path, // Cloudinary image URL
     });
 
@@ -348,6 +347,23 @@ exports.resetPassword = async (req, res) => {
 // request OTP
 exports.sendOTP = async (req, res) => {
   //method Send OTP
+  try {
+    const { email } = req.body;
+
+    // Validate required fields
+    if (!email) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Send the OTP
+    const result = await sendOTP({email});
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 const sendOTP = async ({email}) => {
   try {
     // Generate a 4-digit OTP
@@ -356,8 +372,8 @@ const sendOTP = async ({email}) => {
     // Hash the OTP
     const hashedOtp = await bcrypt.hash(otp.toString(), 10);
 
-    const user = await Users.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found" });
+    const user = await TempUsers.findOne({ email });
+    if (!user) throw new Error("User not found");
 
     // Save the OTP to the database
     const newOTP = new userOTP({
@@ -384,29 +400,12 @@ const sendOTP = async ({email}) => {
       status: "pending",
       message: "OTP sent successfully",
       data: {
-        userId: _id,
-        email: email,
+        userId: user._id,
+        email: user.email,
       },
     };
   } catch (err) {
     throw new Error(err.message);
-  }
-};
-
-  try {
-    const { email } = req.body;
-
-    // Validate required fields
-    if (!email) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-
-    // Send the OTP
-    const result = await sendOTP({email});
-
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
   }
 };
 
