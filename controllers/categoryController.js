@@ -52,6 +52,8 @@ exports.createCategory = async (req, res) => {
     }
 
     // Upload cover image to Cloudinary if a file is provided
+    const DEFAULT_PROFILE_PICTURE =
+      "https://res.cloudinary.com/dqmnyaqev/image/upload/v1739210735/user_avatars/avatar-1739210734375.png";
     let coverImageUrl = "";
     if (req.file) {
       try {
@@ -64,6 +66,8 @@ exports.createCategory = async (req, res) => {
         console.error("Cloudinary Upload Error:", error);
         return res.status(500).json({ message: "Failed to upload cover image to Cloudinary" });
       }
+    }else{
+      coverImageUrl = DEFAULT_PROFILE_PICTURE;
     }
 
     // Create a new category
