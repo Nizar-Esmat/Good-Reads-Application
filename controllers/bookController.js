@@ -32,57 +32,7 @@ const upload = multer({
 
 
 // Function to fetch a specific page of a PDF// Function to fetch a specific page of a PDF
-const fetchPdfPage = async (publicId, pageNumber) => {
-  try {
-    // Validate inputs
-    if (!publicId || typeof publicId !== "string") {
-      throw new Error("Invalid publicId: must be a non-empty string");
-    }
 
-    if (!pageNumber || typeof pageNumber !== "number" || pageNumber < 1) {
-      throw new Error("Invalid pageNumber: must be a positive integer");
-    }
-
-    // Generate the URL for the specific page
-    const url = cloudinary.url(`${publicId}.pdf`, {
-      transformation: [
-        { page: pageNumber }, // Fetch the specified page
-      ],
-      sign_url: true, // Enable URL signing
-    });
-
-    console.log("Generated URL for page", pageNumber, ":", url);
-    return url;
-  } catch (err) {
-    console.error("Error fetching PDF page:", err.message);
-    throw err; // Re-throw the error for the caller to handle
-  }
-};
-
-exports.halfpdf = async (req, res) => {
-  try {
-    const { publicId, pageNumber } = req.body;
-
-    // Validate request body
-    if (!publicId || !pageNumber) {
-      return res.status(400).json({ error: "Missing publicId or pageNumber in request body" });
-    }
-
-    // Fetch the PDF page URL
-    const url = await fetchPdfPage(publicId, pageNumber);
-
-    // Send the URL in the response
-    res.json({ url });
-  } catch (err) {
-    console.error("Error fetching PDF page:", err.message);
-
-    if (err.response && err.response.status === 401) {
-      return res.status(401).json({ error: "Unauthorized: Check Cloudinary credentials" });
-    }
-
-    res.status(500).json({ error: err.message });
-  }
-};
 
 
 exports.createBook = async (req, res) => {
