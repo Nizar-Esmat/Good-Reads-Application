@@ -43,15 +43,19 @@ exports.createAuthor = async (req, res) => {
     }
 
     // Validate the books array
-    const validBooks = books.map(book => {
-      let bookId = null;
-      if (book.bookId && mongoose.Types.ObjectId.isValid(book.bookId)) {
-        bookId = new mongoose.Types.ObjectId(book.bookId);
-      }
-      return {
-        bookId: bookId,
-      };
-    });
+    if (books) {
+      const validBooks = books.map(book => {
+        let bookId = null;
+        if (book.bookId && mongoose.Types.ObjectId.isValid(book.bookId)) {
+          bookId = new mongoose.Types.ObjectId(book.bookId);
+        }
+        return {
+          bookId: bookId,
+        };
+      });
+    } else {
+      validBooks = [];
+    }
 
     const DEFAULT_PROFILE_PICTURE =
     "https://res.cloudinary.com/dqmnyaqev/image/upload/v1739210735/user_avatars/avatar-1739210734375.png";
