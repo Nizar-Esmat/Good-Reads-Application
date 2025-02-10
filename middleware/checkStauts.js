@@ -1,22 +1,21 @@
-const PurchasedBook = require("../models/PurchasedBook");
+const Subscription = require("../models/Subscription");
 
 module.exports = async (req, res, next) => {
-    const { userId, requestedPages } = req.query; 
-    const { id: bookId } = req.params; 
+    const { userId, requestedPages } = req.query;  
 
     try {
-        if (requestedPages <= 10) {
-            return next();
+        let subscription = await Subscription.findOne({ userId });
+
+        if (!subscription) {
+            subscription = { status: "Free" };
         }
 
-        const purchasedBook = await PurchasedBook.findOne({ userId, bookId });
-
-        if (!purchasedBook) {
-            return res.status(403).json({ message: "You can only read the first 10 pages for free. Please purchase the book to access the full content." });
+        if (subscription.status === "Free" && requestedPages > 10) {
+            return res.status(403).json({ message: "You can only view the first 10 pages with a Free subscription. Please upgrade to Premium." });
         }
 
         next(); 
     } catch (error) {
-        res.status(500).json({ message: "Error checking book purchase status", error: error.message });
+        res.status(500).json({ message: "Error checking subscription", error: error.message });
     }
 };

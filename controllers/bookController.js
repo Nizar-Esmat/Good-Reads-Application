@@ -1,4 +1,5 @@
 const Book = require("../models/Books");
+const Subscription = require("../models/Subscription");
 const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
@@ -59,7 +60,6 @@ exports.createBook = async (req, res) => {
     averageRating,
     ratings,
     reviews,
-    price,
     categoryName,
     description,
   } = req.body;
@@ -79,7 +79,6 @@ exports.createBook = async (req, res) => {
     return res.status(400).json({ message: "This book already exists" });
   }
 
-  const bookPrice = price !== undefined ? price : 0;
 
   // Upload cover image to Cloudinary
   let coverImageUrl = "";
@@ -108,7 +107,6 @@ exports.createBook = async (req, res) => {
     averageRating: averageRating,
     ratings: ratings || 0,
     reviews: reviews || [],
-    price:bookPrice,
     categoryName: categoryName || "Unknown",
     description: description || "",
     coverImage: await coverImageUrl, // Use the Cloudinary URL for the cover image
@@ -157,7 +155,7 @@ exports.getBookById = async (req, res) => {
 // Update a book
 exports.updateBook = async (req, res) => {
   try {
-    const { bookName, authorName, averageRating, ratings, reviews,price , categoryName, description } = req.body;
+    const { bookName, authorName, averageRating, ratings, reviews,categoryName, description } = req.body;
     const book = await Book.findById(req.params.id);
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
@@ -169,7 +167,6 @@ exports.updateBook = async (req, res) => {
     book.averageRating = averageRating || book.averageRating;
     book.ratings = ratings || book.ratings;
     book.reviews = reviews || book.reviews;
-    book.price = price !== undefined ? price : book.price;
     book.categoryName = categoryName || book.categoryName;
     book.description = description || book.description;
 
@@ -184,6 +181,7 @@ exports.updateBook = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Delete a book
 exports.deleteBook = async (req, res) => {
