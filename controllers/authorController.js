@@ -53,13 +53,17 @@ exports.createAuthor = async (req, res) => {
       };
     });
 
+    const DEFAULT_PROFILE_PICTURE =
+    "https://res.cloudinary.com/dqmnyaqev/image/upload/v1739210735/user_avatars/avatar-1739210734375.png";
+
+    const avatar = req.file ? req.file.path : DEFAULT_PROFILE_PICTURE
     // Create the author object
     const author = new Author({
       authorName: authorName,
       dateOfBirth: dateOfBirth,
       books: validBooks || [],
       bio: bio || "",
-      avatar: await req.file.path // Use Cloudinary URL
+      avatar
     });
 
     // Save the author to the database

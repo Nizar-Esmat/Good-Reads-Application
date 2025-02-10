@@ -173,20 +173,22 @@ exports.adminLogin = async (req , res) =>{
 // Register
 exports.register = async (req, res) => {
   try {
-
-    const {error} = resgisterSchema.validate(req.body);
+    const { error } = resgisterSchema.validate(req.body);
     if (error) {
       return res.status(400).json({ message: error.details[0].message });
     }
+
     const { name, email, password, role } = req.body;
 
     // Set default role if not provided
-    const userRole = role || 'user';
+    const userRole = role || "user";
 
-    // Check if an image file was uploaded
-    if (!req.file) {
-      return res.status(400).json({ message: "Please upload an image" });
-    }
+    // Default profile picture URL
+    const DEFAULT_PROFILE_PICTURE =
+      "https://res.cloudinary.com/dqmnyaqev/image/upload/v1739210735/user_avatars/avatar-1739210734375.png";
+
+    // Use the uploaded image or the default image
+    const avatar = req.file ? req.file.path : DEFAULT_PROFILE_PICTURE;
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -197,7 +199,7 @@ exports.register = async (req, res) => {
       email,
       password: hashedPassword,
       role: userRole,
-      avatar: req.file.path, // Cloudinary image URL
+      avatar, // Use the uploaded image or the default image
     });
 
     // Save the temporary user to the database
