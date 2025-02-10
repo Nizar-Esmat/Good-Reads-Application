@@ -214,5 +214,19 @@ exports.deleteAuthor = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+exports.getAuthorByName = async (req, res) => {
+  try {
+    const { name } = req.params;
+    const author = await Author.findOne({ authorName: name });
+
+    if (!author) {
+      return res.status(404).json({ message: "Author not found" });
+    }
+
+    res.status(200).json(author);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 exports.upload = upload;
