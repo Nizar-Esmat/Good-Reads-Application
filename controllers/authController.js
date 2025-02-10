@@ -39,6 +39,7 @@ const resgisterSchema = Joi.object({
     "string.empty": "Password is required",
     "any.required": "Password is required",
   }),
+  role: Joi.string().default("user")
 });
 
 let transport = nodemailer.createTransport({
@@ -173,20 +174,20 @@ exports.adminLogin = async (req , res) =>{
 // Register
 exports.register = async (req, res) => {
   try {
-
-    // const {error} = resgisterSchema.validate(req.body);
-    // if (error) {
-    //   return res.status(400).json({ message: error.details[0].message });
-    // }
-    const { name, email, password, role } = req.body;
-
-    // Set default role if not provided
-    const userRole = role || 'user';
-
-    // Check if an image file was uploaded
-    if (!req.file) {
-      return res.status(400).json({ message: "Please upload an image" });
+    const { error } = resgisterSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
     }
+
+    const { name, email, password } = req.body;
+
+
+    // Default profile picture URL
+    const DEFAULT_PROFILE_PICTURE =
+      "https://res.cloudinary.com/dqmnyaqev/image/upload/v1739210735/user_avatars/avatar-1739210734375.png";
+
+    // Use the uploaded image or the default image
+    const avatar = req.file ? req.file.path : DEFAULT_PROFILE_PICTURE;
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -196,8 +197,8 @@ exports.register = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: userRole,
-      avatar: req.file.path, // Cloudinary image URL
+      role : "user",
+      avatar, // Use the uploaded image or the default image
     });
 
     // Save the temporary user to the database
@@ -212,6 +213,51 @@ exports.register = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+// RegisterInAdmin
+exports.registerInAdmin = async (req, res) => {
+  try {
+    const { error } = resgisterSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
+    const { name, email, password, role } = req.body;
+
+
+    // Default profile picture URL
+    const DEFAULT_PROFILE_PICTURE =
+      "https://res.cloudinary.com/dqmnyaqev/image/upload/v1739210735/user_avatars/avatar-1739210734375.png";
+
+    // Use the uploaded image or the default image
+    const avatar = req.file ? req.file.path : DEFAULT_PROFILE_PICTURE;
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a temporary user document
+    const tempUser = new TempUsers({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      avatar, // Use the uploaded image or the default image
+    });
+
+    // Save the temporary user to the database
+    await tempUser.save();
+
+    // Send OTP to the user's email
+    const otpResponse = await sendOTP({ email: tempUser.email });
+
+    // Send the response to the client
+    res.json(otpResponse);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // Verify OTP request
 exports.verifyOTP = async (req, res) => {
   try {

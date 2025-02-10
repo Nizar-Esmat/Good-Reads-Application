@@ -6,8 +6,6 @@ const auth = require("../middleware/auth");
 // Route to create a new book
 router.post("/", auth, bookController.createBook);
 
-router.get("/half-pdf", bookController.halfpdf);
-
 // Route to get all books
 router.get("/", bookController.getAllBooks);
 

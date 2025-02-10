@@ -31,58 +31,7 @@ const upload = multer({
 ]);
 
 
-// Function to fetch a specific page of a PDF// Function to fetch a specific page of a PDF
-const fetchPdfPage = async (publicId, pageNumber) => {
-  try {
-    // Validate inputs
-    if (!publicId || typeof publicId !== "string") {
-      throw new Error("Invalid publicId: must be a non-empty string");
-    }
 
-    if (!pageNumber || typeof pageNumber !== "number" || pageNumber < 1) {
-      throw new Error("Invalid pageNumber: must be a positive integer");
-    }
-
-    // Generate the URL for the specific page
-    const url = cloudinary.url(`${publicId}.pdf`, {
-      transformation: [
-        { page: pageNumber }, // Fetch the specified page
-      ],
-      sign_url: true, // Enable URL signing
-    });
-
-    console.log("Generated URL for page", pageNumber, ":", url);
-    return url;
-  } catch (err) {
-    console.error("Error fetching PDF page:", err.message);
-    throw err; // Re-throw the error for the caller to handle
-  }
-};
-
-exports.halfpdf = async (req, res) => {
-  try {
-    const { publicId, pageNumber } = req.body;
-
-    // Validate request body
-    if (!publicId || !pageNumber) {
-      return res.status(400).json({ error: "Missing publicId or pageNumber in request body" });
-    }
-
-    // Fetch the PDF page URL
-    const url = await fetchPdfPage(publicId, pageNumber);
-
-    // Send the URL in the response
-    res.json({ url });
-  } catch (err) {
-    console.error("Error fetching PDF page:", err.message);
-
-    if (err.response && err.response.status === 401) {
-      return res.status(401).json({ error: "Unauthorized: Check Cloudinary credentials" });
-    }
-
-    res.status(500).json({ error: err.message });
-  }
-};
 
 
 exports.createBook = async (req, res) => {
@@ -91,7 +40,8 @@ exports.createBook = async (req, res) => {
     console.log("Request Files:", req.files);
 
     if (req.user.role !== "admin") {
-      return res.status(403).json({ message: "Access denied" }); }
+      return res.status(403).json({ message: "Access denied" });
+    }
     upload(req, res, async (err) => {
       if (err) {
         console.error("Multer Error:", err);
@@ -187,7 +137,7 @@ exports.createBook = async (req, res) => {
       // add the book to auther
       author.books.push({ bookId: book._id });
       await author.save();
-      
+
       //add the book to category
       categories.books.push({ bookId: book._id });
       await categories.save();
@@ -201,7 +151,7 @@ exports.createBook = async (req, res) => {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
-};    
+};
 // Update a book's clicked count
 exports.addclicked = async (req, res) => {
   try {
@@ -265,7 +215,7 @@ exports.getAllBooks = async (req, res) => {
     const totalBooks = await Book.countDocuments(query);
     const totalPages = Math.ceil(totalBooks / limit);
 
-    res.status(200).json({ array:books,  total: totalBooks, totalPages ,currentPage: page});
+    res.status(200).json({ array: books, total: totalBooks, totalPages, currentPage: page });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -317,17 +267,11 @@ exports.getBookById = async (req, res) => {
 //   }
 // };
 
-
-
-
-
-// 
-
 // Get a book by name
 exports.getBookByName = async (req, res) => {
   try {
     const { name } = req.params;
-    
+
     // Use case-insensitive regex for partial matching
     const book = await Book.findOne({ bookName: { $regex: new RegExp(name, "i") } });
 
@@ -390,16 +334,16 @@ exports.deleteBook = async (req, res) => {
 };
 
 exports.getBookByName = async (req, res) => {
-  try{
+  try {
     const { bookName } = req.params;
     const book = await Book.findOne({ bookName: { $regex: new RegExp(bookName, "i") } })
 
-    if(!book){
+    if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
-    res.status(200).json({message : "Book found successfully", book});
-          
-  }catch(err){
+    res.status(200).json({ message: "Book found successfully", book });
+
+  } catch (err) {
     console.error("Error fetching book by name:", err);
     res.status(500).json({ message: "Error fetching book by name", error: err.message });
   }
