@@ -4,7 +4,6 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 const Authors = require("../models/Authors");
 const Category = require("../models/Category");
-const mongoose = require('mongoose');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -196,29 +195,30 @@ exports.getBookById = async (req, res) => {
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
-    res.status(200).json(book);
+
+    return res.status(200).json({ message: "Book content is here!", book })
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Get a book by name
-exports.getBookByName = async (req, res) => {
-  try {
-    const { name } = req.params;
+// // Get a book by name
+// exports.getBookByName = async (req, res) => {
+//   try {
+//     const { name } = req.params;
 
-    // Use case-insensitive regex for partial matching
-    const book = await Book.findOne({ bookName: { $regex: new RegExp(name, "i") } });
+//     // Use case-insensitive regex for partial matching
+//     const book = await Book.findOne({ bookName: { $regex: new RegExp(name, "i") } });
 
-    if (!book) {
-      return res.status(404).json({ message: "Book not found" });
-    }
+//     if (!book) {
+//       return res.status(404).json({ message: "Book not found" });
+//     }
 
-    res.status(200).json(book);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+//     res.status(200).json(book);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
 
 // Update a book
@@ -238,7 +238,6 @@ exports.updateBook = async (req, res) => {
     book.reviews = reviews || book.reviews;
     book.categoryName = categories.categoryName || book.categoryName;
     book.description = description || book.description;
-    book.shelve = shelve || book.shelve;
 
     // Save the updated book
     await book.save();
@@ -251,6 +250,7 @@ exports.updateBook = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Delete a book
 exports.deleteBook = async (req, res) => {
