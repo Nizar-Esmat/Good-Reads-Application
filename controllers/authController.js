@@ -341,17 +341,24 @@ exports.resendOTP = async (req, res) => {
 // Reset password after verifying the OTP
 exports.resetPassword = async (req, res) => {
   try {
-    const { _id, email, otp, newPassword } = req.body;
+    const { email, otp, newPassword } = req.body;
 
-    if (!_id || !email || !otp || !newPassword) {
+    if (!email || !otp || !newPassword) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const otpDocument = await userOTP.findOne({ userId: _id });
+    // Find user using email
+    const user = await Users.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+    console.log(user)
+    const userId = user._id;
+    const otpDocument = await userOTP.findOne({ userId });
     if (!otpDocument) {
       return res.status(400).json({ message: "OTP not found" });
     }
-
+    console.log(otpDocument.otp, otp.toString())
     const isOtpValid = await bcrypt.compare(otp.toString(), otpDocument.otp);
     if (!isOtpValid) {
       return res.status(400).json({ message: "Invalid OTP" });
@@ -360,20 +367,15 @@ exports.resetPassword = async (req, res) => {
     if (otpDocument.expiresAt < Date.now()) {
       return res.status(400).json({ message: "OTP has expired" });
     }
-
-
-
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    const user = await Users.findById(_id);
-
-    const isValidPassword = await bcrypt.compare(hashedPassword, user.password);
-    if (!isValidPassword) {
+    // console.log(newPassword, user.password, hashedPassword)
+    const isValidPassword = await bcrypt.compare(newPassword, user.password);
+    if (isValidPassword) {
       return res.status(400).json({ message: "New password cannot be the same as the old password" });
     } 
 
     await Users.findByIdAndUpdate(
-      _id,
+      userId,
       { password: hashedPassword },
       { new: true }
     );
@@ -410,14 +412,20 @@ exports.sendOTP = async (req, res) => {
 const sendOTP = async ({email}) => {
   try {
     // Generate a 4-digit OTP
-    const otp = Math.floor(1000 + Math.random() * 9000);
+    const otp = (Math.floor(1000 + Math.random() * 9000))
 
     // Hash the OTP
     const hashedOtp = await bcrypt.hash(otp.toString(), 10);
 
-    const user = await TempUsers.findOne({ email });
-    if (!user) throw new Error("User not found");
-
+    let user = await Users.findOne({ email });
+    if (!user) {
+      user = await TempUsers.findOne({ email });
+    } 
+    if (!user) {
+      throw new Error("User not found");
+    } 
+    //ensure there aren't any old OTPs
+    await userOTP.deleteMany({ userId: user._id });
     // Save the OTP to the database
     const newOTP = new userOTP({
       userId: user._id,
