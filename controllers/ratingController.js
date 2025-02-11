@@ -24,6 +24,8 @@ exports.createRatingOrUpdate = async (req, res) => {
     res.status(500).json({ message: "Error creating or updating Rating",error: err.message  });
   }
 };
+
+//updata A
 const updateBookAverageRating = async (bookId) => {
     try {
         const ratings = await Rating.aggregate([
