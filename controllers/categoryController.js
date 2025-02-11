@@ -28,7 +28,7 @@ const coverImageStorage = new CloudinaryStorage({
 const uploadCoverImage = multer({ storage: coverImageStorage });
 
 // Export the upload middleware for use in routes
-exports.uploadCoverImage = uploadCoverImage.single('category_covers');
+exports.uploadCoverImage = uploadCoverImage.single('coverImage');
 
 exports.updateCategory = async (req, res) => {
   try {
