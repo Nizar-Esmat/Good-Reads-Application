@@ -88,19 +88,28 @@ exports.createAuthor = async (req, res) => {
 // Get all authors
 exports.getAllAuthors = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, noPagination = false, search = '' } = req.query;
 
-    const authors = await Author.find()
-      .populate('books.bookId')
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+    let authors;
+    let totalAuthors;
+    const searchQuery = search ? { authorName: { $regex: search, $options: 'i' } } : {};
 
-    const totalAuthors = await Author.countDocuments();
+    //get all authors without pagination
+    if (noPagination === 'true') {
+      authors = await Author.find(searchQuery).select('_id authorName');
+      totalAuthors = authors.length;
+    } else {
+      authors = await Author.find(searchQuery)
+        .populate('books.bookId')
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit));
+      totalAuthors = await Author.countDocuments(searchQuery);
+    }
 
     res.status(200).json({
       array: authors,
-      totalPages: Math.ceil(totalAuthors / limit),
-      currentPage: parseInt(page),
+      totalPages: noPagination === 'true' ? 1 : Math.ceil(totalAuthors / limit),
+      currentPage: noPagination === 'true' ? 1 : parseInt(page),
       total: totalAuthors,
     });
   } catch (err) {

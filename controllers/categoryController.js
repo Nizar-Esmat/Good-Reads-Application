@@ -188,11 +188,9 @@ exports.getCategoryById = async (req, res) => {
 //Get all Categories
 exports.getAllCategories = async (req, res) => {
   try {
-    let { page, limit, search } = req.query;
-    page = parseInt(page) || 1;
-    limit = parseInt(limit) || 10;
-
-    const skip = (page - 1) * limit;
+    let { page, limit, search, noPagination = false } = req.query;
+    let categories;
+    let totalCategories;
 
     let searchQuery = {};
     if (search) {
@@ -201,15 +199,21 @@ exports.getAllCategories = async (req, res) => {
       };
     }
 
-    const categories = await Category.find(searchQuery).skip(skip).limit(limit).populate('books.bookId');
-    const totalCategories = await Category.countDocuments(searchQuery);
-
-    const totalPages = Math.ceil(totalCategories / limit);
+    if (noPagination === 'true') {
+      categories = await Category.find(searchQuery).select('_id categoryName');
+      totalCategories = categories.length;
+    } else {
+      page = parseInt(page) || 1;
+      limit = parseInt(limit) || 10;
+      const skip = (page - 1) * limit;
+      totalCategories = await Category.countDocuments(searchQuery);
+      categories = await Category.find(searchQuery).skip(skip).limit(limit).populate('books.bookId');
+    }
 
     res.json({
       total: totalCategories,
-      totalPages,
-      currentPage: page,
+      totalPages: noPagination == 'true' ? 1 : Math.ceil(totalCategories / limit),
+      currentPage: noPagination == 'true' ? 1 : page,
       array: categories,
     });
   } catch (err) {
