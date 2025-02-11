@@ -21,10 +21,9 @@ const storage = new CloudinaryStorage({
     public_id: (req, file) => `avatar-${Date.now()}`, // Unique public ID
   },
 });
-
 // Initialize Multer with the Cloudinary storage
 const upload = multer({ storage: storage });
-
+exports.upload = upload;
 // Create a new author (admin only)
 exports.createAuthor = async (req, res) => {
   try {
@@ -262,4 +261,3 @@ exports.getAuthorByName = async (req, res) => {
   }
 };
 
-exports.upload = upload;
