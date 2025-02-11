@@ -9,15 +9,15 @@ const {
   getCategoryById,
   getAllCategories,
   deleteCategory,
+  uploadCoverImage
 } = require("../controllers/categoryController");
 
-const { uploadCoverImage } = require("../controllers/categoryController");
 
-router.post("/", uploadCoverImage, auth, createCategory);
+router.post("/", auth, uploadCoverImage, createCategory);
 
 router.post("/:id/add-books", auth, addBooksToCategory);
 
-router.put("/:id", auth, updateCategory);
+router.put("/:id", auth ,uploadCoverImage, updateCategory);
 
 router.get("/:id", getCategoryById);
 

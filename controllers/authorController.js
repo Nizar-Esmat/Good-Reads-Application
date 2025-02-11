@@ -21,10 +21,9 @@ const storage = new CloudinaryStorage({
     public_id: (req, file) => `avatar-${Date.now()}`, // Unique public ID
   },
 });
-
 // Initialize Multer with the Cloudinary storage
 const upload = multer({ storage: storage });
-
+exports.upload = upload;
 // Create a new author (admin only)
 exports.createAuthor = async (req, res) => {
   try {
@@ -146,23 +145,48 @@ exports.addBookToAuthor = async (req, res) => {
 // Update an author
 exports.updateAuthor = async (req, res) => {
   try {
+    console.log("Request Body:", req.body); // Log the request body
+    console.log("Request Params:", req.params); // Log the request params
+    console.log("Request File:", req.file); // Log the uploaded file (if any)
+
     const { authorName, dateOfBirth, bio } = req.body;
+
+    // Find the author by ID
     const author = await Author.findById(req.params.id);
     if (!author) {
       return res.status(404).json({ message: "Author not found" });
     }
 
-    author.authorName = authorName || author.authorName;
-    author.dateOfBirth = dateOfBirth || author.dateOfBirth;
-    author.bio = bio || author.bio;
+    // Update author fields if provided
+    if (authorName) author.authorName = authorName;
+    if (dateOfBirth) author.dateOfBirth = dateOfBirth;
+    if (bio) author.bio = bio;
 
+    // Upload new avatar to Cloudinary if a file is provided
+    if (req.file) {
+      try {
+        // Upload the file to Cloudinary
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: "author_avatars", // Folder in Cloudinary
+          resource_type: "image", // Ensure it's treated as an image
+        });
+        author.avatar = result.secure_url; // Use the Cloudinary URL for the avatar
+      } catch (error) {
+        console.error("Cloudinary Upload Error Details:", error.message); // Log the error details
+        return res.status(500).json({ error: "Failed to upload avatar to Cloudinary", details: error.message });
+      }
+    }
+
+    // Save the updated author
     await author.save();
 
+    // Send the updated author as a response
     res.status(200).json({
       message: "Author updated successfully",
       author: author,
     });
   } catch (err) {
+    console.error("Error updating author:", err); // Log the error
     res.status(500).json({ error: err.message });
   }
 };
@@ -237,4 +261,3 @@ exports.getAuthorByName = async (req, res) => {
   }
 };
 
-exports.upload = upload;

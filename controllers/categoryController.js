@@ -1,33 +1,81 @@
-  const Category = require('../models/Category');
-  const mongoose = require("mongoose");
-  const cloudinary = require("cloudinary").v2;
-  const { CloudinaryStorage } = require("multer-storage-cloudinary");
-  const multer = require("multer");
-  const Books = require('../models/Books');
-  
-  // Configure Cloudinary
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  });
-  
-  // Set up Multer storage for category cover images
-  const coverImageStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-      folder: "category_covers", // Folder for category cover images
-      format: async (req, file) => "png", // Default format
-      public_id: (req, file) => `cover-${Date.now()}`, // Unique public ID
-      resource_type: "image", // Explicitly set resource_type to "image"
-    },
-  });
-  
-  // Create Multer upload middleware for cover images
-  const uploadCoverImage = multer({ storage: coverImageStorage });
-  
-  // Export the upload middleware for use in routes
-  exports.uploadCoverImage = uploadCoverImage.single("coverImage");
+const Category = require('../models/Category');
+const mongoose = require("mongoose");
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const multer = require("multer");
+const Books = require('../models/Books');
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Set up Multer storage for category cover images
+const coverImageStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "category_covers", // Folder for category cover images
+    allowed_formats: ["jpg", "jpeg", "png"], // Only allow specific formats
+    format: "png", // Convert all images to PNG
+    public_id: (req, file) => `cover-${Date.now()}-${file.originalname}`, // Unique public ID
+    resource_type: "image", // Explicitly set resource_type to "image"
+  },
+});
+
+// Create Multer upload middleware for cover images
+const uploadCoverImage = multer({ storage: coverImageStorage });
+
+// Export the upload middleware for use in routes
+exports.uploadCoverImage = uploadCoverImage.single('category_covers');
+
+exports.updateCategory = async (req, res) => {
+  try {
+    console.log("Request Body:", req.body); // Log the request body
+    console.log("Request Params:", req.params); // Log the request params
+    console.log("Request File:", req.file); // Log the uploaded file (if any)
+
+    const { name, description } = req.body;
+
+    // Find the category by ID
+    const category = await Category.findById(req.params.id);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    // Update category fields if provided
+    if (name) category.name = name;
+    if (description) category.description = description;
+
+    // Upload new cover image to Cloudinary if a file is provided
+    if (req.file) {
+      try {
+        // Upload the file to Cloudinary
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: "category_covers", // Folder in Cloudinary
+          resource_type: "image", // Ensure it's treated as an image
+        });
+        category.coverImage = result.secure_url; // Use the Cloudinary URL for the cover image
+      } catch (error) {
+        console.error("Cloudinary Upload Error Details:", error.message); // Log the error details
+        return res.status(500).json({ error: "Failed to upload cover image to Cloudinary", details: error.message });
+      }
+    }
+
+    // Save the updated category
+    await category.save();
+
+    // Send the updated category as a response
+    res.status(200).json({
+      message: "Category updated successfully",
+      category: category,
+    });
+  } catch (err) {
+    console.error("Error updating category:", err); // Log the error
+    res.status(500).json({ error: err.message });
+  }
+};
 
 
 // Create a new category (admin )
@@ -66,7 +114,7 @@ exports.createCategory = async (req, res) => {
         console.error("Cloudinary Upload Error:", error);
         return res.status(500).json({ message: "Failed to upload cover image to Cloudinary" });
       }
-    }else{
+    } else {
       coverImageUrl = DEFAULT_PROFILE_PICTURE;
     }
 
@@ -124,26 +172,6 @@ exports.addBooksToCategory = async (req, res) => {
   }
 };
 
-//update category
-exports.updateCategory = async (req, res) => {
-  try {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ message: "Access denied" });
-    }
-    const { id } = req.params;
-    const updatedData = req.body;
-    const category = await Category.findByIdAndUpdate(id, updatedData, {
-      new: true,
-    });
-
-    if (!category)
-      return res.status(404).json({ message: "Category not found" });
-
-    res.json({ message: "Category updated successfully", category });
-  } catch (err) {
-    res.status(500).json({ message: "Error updating category" });
-  }
-};
 
 // Get a Category by id
 exports.getCategoryById = async (req, res) => {
@@ -208,7 +236,7 @@ exports.deleteCategory = async (req, res) => {
 
     res.json({
       message: "Category and associated books deleted successfully",
-      deletedCategory: category.categoryName, 
+      deletedCategory: category.categoryName,
       deletedBooks: deletedBookNames,
     });
   } catch (err) {
