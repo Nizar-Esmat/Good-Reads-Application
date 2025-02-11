@@ -129,6 +129,31 @@ exports.getAllShelvesForUser = async (req, res) => {
   }
 };
 
+exports.getAllShelvesForUser2 = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await Users.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const shelves = await Shelve.find({ userId }).populate('bookId', "bookName authorName coverImage shelve");
+    
+    // if (shelves.length === 0) {
+    //   return res
+    //     .status(404)
+    //     .json({ message: "No shelves found for this user" });
+    // }
+
+    res.status(200).json({ shelves });
+  } catch (err) {
+    console.error("Error fetching shelves for user", err);
+    res
+      .status(500)
+      .json({ message: "Error fetching shelves", error: err.message });
+  }
+};
+
 
 //delete shelve
 exports.deleteShelve = async (req, res) => {
