@@ -1,40 +1,15 @@
-const express = require("express");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const User = require("../models/Users");
-
+const express = require('express');
 const router = express.Router();
+const authController = require('../controllers/authController');
 
-// Register
-router.post("/register", async (req, res) => {
-  try {
-    const { name, email, password, role } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = new User({ name, email, password: hashedPassword, role });
-    await user.save();
-
-    res.status(201).json({ message: "User registered successfully" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Login
-router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found" });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
-
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET);
-    res.json({ token });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-module.exports = router;
+router.post('/register', authController.uploadImage, authController.register);
+router.post('/login', authController.login);
+router.post('/verify-otp', authController.verifyOTP);
+router.post('/resend-otp', authController.resendOTP);
+router.post('/reset-password', authController.resetPassword);
+router.post('/sendOTP' , authController.sendOTP);
+router.post('/admin-login', authController.adminLogin);
+router.get('/admin', authController.authAdmin);
+router.post('/registerInAdmin', authController.uploadImage, authController.registerInAdmin);
+router.get('/',authController.auth);
+module.exports = router;    

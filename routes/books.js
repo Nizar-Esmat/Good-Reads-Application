@@ -1,92 +1,35 @@
 const express = require("express");
-const Book = require("../models/Books");
-const auth = require("../middleware/auth");
-
 const router = express.Router();
+const bookController = require("../controllers/bookController");
+const auth = require("../middleware/auth");
+const checkStatus = require("../middleware/checkStauts");
 
-// Create a new book (admin or author)
-router.post("/", auth, async (req, res) => {
-  try {
-    if (req.user.role !== "admin" && req.user.role !== "author") {
-      return res.status(403).json({ message: "Access denied" });
-    }
-    const {
-      bookName,
-      authorName,
-      averageRating,
-      ratings,
-      reviews,
-      categoryName,
-      description,
-      coverImage,
-      shelve,
-    } = req.body;
-    const book = new Book({
-      bookName,
-      authorName,
-      averageRating: averageRating || 0,
-      ratings: ratings || 0,
-      reviews: reviews || [],
-      categoryName,
-      description,
-      coverImage,
-      shelve: shelve || "Want To Read",
-      author: req.user._id,
-    });
-    await book.save();
-    res.status(201).json(book);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
-// Get all books
-router.get("/", async (req, res) => {
-  try {
-    const books = await Book.find();
-    res.json(books);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// Route to create a new book
+router.post("/", auth, bookController.createBook);
 
-// Update a Book (Author)
-router.put("/:id", auth, async (req, res) => {
-  try {
-    const book = await Book.findById(req.params.id);
-    if (!book || !book.author) {
-      return res.status(400).json({ message: "Book does not have an author." });
-    }
-    if (book.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        message: "Access denied: You are not the author of this book",
-      });
-    }
+// Route to get all books
+router.get("/", bookController.getAllBooks);
 
-    const updatedBook = await Book.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-    res.json(updatedBook);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// Route to get a book by ID
+router.get("/:id", bookController.getBookById);
 
-// Delete a book(Admin or Author)
-router.delete("/:id", auth, async (req, res) => {
-  try {
-    const book = await Book.findById(req.params.id);
+// Route to get a book by name 
+router.get("/name/:name", bookController.getBookByName);
 
-    if (req.user.role !== "admin" && book.author !== req.user._id.toString()) {
-      return res.status(403).json({
-        message: "Access denied: You are not the author of this book",
-      });
-    }
-    await Book.findByIdAndDelete(req.params.id);
-    res.json({ message: "Book deleted" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// Route to update a book (including file uploads)
+router.put("/:id", auth, bookController.updateBook);
+
+// Route to delete a book
+router.delete("/:id", auth, bookController.deleteBook);
+
+// Route to add a click to a book
+router.put("/add-clicked/:id", bookController.addclicked);
+
+
+//get book by name
+router.get("/getBookByName/:bookName", bookController.getBookByName);
+
+
 
 module.exports = router;
