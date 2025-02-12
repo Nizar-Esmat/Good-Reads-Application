@@ -12,7 +12,7 @@ router.post("/", auth, bookController.createBook);
 router.get("/", bookController.getAllBooks);
 
 // Route to get a book by ID
-router.get("/:id", checkStatus, bookController.getBookById);
+router.get("/:id", bookController.getBookById);
 
 // Route to get a book by name 
 router.get("/name/:name", bookController.getBookByName);

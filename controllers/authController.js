@@ -333,11 +333,16 @@ exports.resendOTP = async (req, res) => {
     if (!email) {
       return res.status(400).json({ message: "Missing required fields" });
     }else{
-      const user = await Users.findOne({ email });
-      if (!user) return res.status(400).json({ message: "User not found" });
+      let user = await Users.findOne({ email });
+      if (!user) {
+        user = await TempUsers.findOne({ email });
+      }
+      if (!user) {
+         return res.status(400).json({ message: "User not found" });
+        }
       const userId = user._id
       await userOTP.deleteMany({userId});
-      // sendOTP({user._id,email} ,res);
+      sendOTP({email} ,res);
     }
   } catch (err) {
     res.json({

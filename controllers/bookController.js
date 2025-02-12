@@ -1,10 +1,12 @@
+const jwt = require("jsonwebtoken");
+const Users = require("../models/Users");
 const Book = require("../models/Books");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 const Authors = require("../models/Authors");
 const Category = require("../models/Category");
-
+const Subscription = require("../models/Subscription")
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -174,7 +176,7 @@ exports.getAllBooks = async (req, res) => {
 
     const query = search ? { bookName: { $regex: search, $options: "i" } } : {};
 
-    const books = await Book.find(query).populate('authorId').populate('categoryId')
+    const books = await Book.find(query).select('-bookFile').populate('authorId').populate('categoryId')
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
@@ -191,12 +193,30 @@ exports.getAllBooks = async (req, res) => {
 // Get a book by ID
 exports.getBookById = async (req, res) => {
   try {
-    const book = await Book.findById(req.params.id).populate('authorId');
+    let book;
+    let user;
+    let subscription
+    book = await Book.findById(req.params.id).populate('authorId')
+    let bookData = book.toObject()
+    const token = req.header("Authorization");
+    if (token){
+      const tokenWithoutBearer = token.replace("Bearer ", "").trim();
+      const decodedUser = jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET);
+      const userId = decodedUser.id
+      user = await Subscription.findOne({userId})
+      if(user){
+        subscription = user.status
+      }
+    }
+    if (subscription !== 'Premium'){ 
+      delete bookData.bookFile
+    }
+
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
 
-    return res.status(200).json({ message: "Book content is here!", book })
+    return res.status(200).json({ message: "Book content is here!", book:bookData })
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
