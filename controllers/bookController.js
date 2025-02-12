@@ -1,11 +1,12 @@
+const jwt = require("jsonwebtoken");
+const Users = require("../models/Users");
 const Book = require("../models/Books");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 const Authors = require("../models/Authors");
 const Category = require("../models/Category");
-const mongoose = require('mongoose');
-
+const Subscription = require("../models/Subscription")
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -175,7 +176,7 @@ exports.getAllBooks = async (req, res) => {
 
     const query = search ? { bookName: { $regex: search, $options: "i" } } : {};
 
-    const books = await Book.find(query).populate('authorId').populate('categoryId')
+    const books = await Book.find(query).select('-bookFile').populate('authorId').populate('categoryId')
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
@@ -192,33 +193,52 @@ exports.getAllBooks = async (req, res) => {
 // Get a book by ID
 exports.getBookById = async (req, res) => {
   try {
-    const book = await Book.findById(req.params.id).populate('authorId');
+    let book;
+    let user;
+    let subscription
+    book = await Book.findById(req.params.id).populate('authorId')
+    let bookData = book.toObject()
+    const token = req.header("Authorization");
+    if (token){
+      const tokenWithoutBearer = token.replace("Bearer ", "").trim();
+      const decodedUser = jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET);
+      const userId = decodedUser.id
+      user = await Subscription.findOne({userId})
+      if(user){
+        subscription = user.status
+      }
+    }
+    if (subscription !== 'Premium'){ 
+      delete bookData.bookFile
+    }
+
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
-    res.status(200).json(book);
+
+    return res.status(200).json({ message: "Book content is here!", book:bookData })
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Get a book by name
-exports.getBookByName = async (req, res) => {
-  try {
-    const { name } = req.params;
+// // Get a book by name
+// exports.getBookByName = async (req, res) => {
+//   try {
+//     const { name } = req.params;
 
-    // Use case-insensitive regex for partial matching
-    const book = await Book.findOne({ bookName: { $regex: new RegExp(name, "i") } });
+//     // Use case-insensitive regex for partial matching
+//     const book = await Book.findOne({ bookName: { $regex: new RegExp(name, "i") } });
 
-    if (!book) {
-      return res.status(404).json({ message: "Book not found" });
-    }
+//     if (!book) {
+//       return res.status(404).json({ message: "Book not found" });
+//     }
 
-    res.status(200).json(book);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+//     res.status(200).json(book);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
 
 // Update a book
@@ -238,7 +258,6 @@ exports.updateBook = async (req, res) => {
     book.reviews = reviews || book.reviews;
     book.categoryName = categories.categoryName || book.categoryName;
     book.description = description || book.description;
-    book.shelve = shelve || book.shelve;
 
     // Save the updated book
     await book.save();
@@ -251,6 +270,7 @@ exports.updateBook = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Delete a book
 exports.deleteBook = async (req, res) => {

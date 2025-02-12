@@ -3,6 +3,7 @@ const userOTP = require("../models/userOTP");
 const TempUsers = require("../models/TempUsers");
 
 
+const Subscription = require("../models/Subscription");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cloudinary = require('cloudinary').v2;
@@ -127,12 +128,11 @@ exports.login = async (req, res) => {
 
     // Generate a JWT token
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET);
-
-    // Send the token in the response
-    res.json({ 
-      token,
-      user
-     });
+    const subscription = await Subscription.findOne({ userId: user._id });
+    
+    res.json({ token , user,  subscription: subscription
+      ? { type: subscription.type, expiryDate: subscription.expiryDate }
+      : { type: "Free", expiryDate: null }, });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -247,8 +247,14 @@ exports.registerInAdmin = async (req, res) => {
     // Save the user to the database
     await user.save();
 
-    // Send the response to the client
-    res.status(201).json({ message: "User created successfully", user });
+    const newSubscription = new Subscription({
+      userId: user._id,
+      status: "Free",
+      startDate: new Date(),
+  });
+  await newSubscription.save();
+
+    res.status(201).json({ message: "User registered successfully", user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -294,7 +300,6 @@ exports.verifyOTP = async (req, res) => {
       password: tempUser.password,
       role: tempUser.role,
       avatar: tempUser.avatar,
-      verified: true,
     });
 
     // Save the user to the Users collection
@@ -305,6 +310,13 @@ exports.verifyOTP = async (req, res) => {
 
     // Delete the OTP document
     await userOTP.findByIdAndDelete(otpDocument._id);
+
+    const newSubscription = new Subscription({
+      userId: user._id,
+      status: "Free",
+      startDate: new Date(),
+    });
+    await newSubscription.save();
 
     res.json({ message: "Email verified and user registered successfully" });
   } catch (err) {
@@ -321,11 +333,16 @@ exports.resendOTP = async (req, res) => {
     if (!email) {
       return res.status(400).json({ message: "Missing required fields" });
     }else{
-      const user = await Users.findOne({ email });
-      if (!user) return res.status(400).json({ message: "User not found" });
+      let user = await Users.findOne({ email });
+      if (!user) {
+        user = await TempUsers.findOne({ email });
+      }
+      if (!user) {
+         return res.status(400).json({ message: "User not found" });
+        }
       const userId = user._id
       await userOTP.deleteMany({userId});
-      // sendOTP({user._id,email} ,res);
+      sendOTP({email} ,res);
     }
   } catch (err) {
     res.json({
